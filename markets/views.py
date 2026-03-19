@@ -213,3 +213,19 @@ class ExportDataView(SingleTableMixin, FilterView):
 
         return response
 
+
+class ChartPageView(FilterView):
+    """View for the chart page that opens in a new tab"""
+    template_name = 'markets/chart_page.html'
+
+    def get(self, request, *args, **kwargs):
+        ticker = request.GET.get('ticker')
+        if not ticker:
+            return HttpResponseBadRequest("Ticker required")
+
+        context = {
+            'ticker': ticker,
+            'year_range': range(2020, 2027),
+        }
+        return render(request, self.template_name, context)
+

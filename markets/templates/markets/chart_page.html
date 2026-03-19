@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Price Chart - {{ ticker }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .container-fluid { max-width: 1600px; margin: 0 auto; }
+        .card { box-shadow: 0 2px 4px rgba(0,0,0,.1); margin-bottom: 20px; border: none; border-radius: 10px; }
+        .card-header { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; border-radius: 10px 10px 0 0 !important; padding: 15px 20px; }
+        .card-header h5 { margin: 0; font-weight: 600; }
+        .card-body { padding: 20px; }
+        #chartContainer { position: relative; height: 550px; width: 100%; margin-top: 15px; }
+        .controls { margin-bottom: 15px; }
+        .btn-group-sm .btn { padding: 0.25rem 0.5rem; }
+        .text-muted { color: #6c757d !important; }
+        .form-select, .btn { border-radius: 6px; }
+        
+        /* Popup styles */
+        .candle-popup {
+            position: absolute;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 15px;
+            z-index: 2000;
+            min-width: 320px;
+            border: 1px solid #dee2e6;
+            display: none;
+        }
+        .candle-popup .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .candle-popup .popup-header h6 {
+            margin: 0;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .candle-popup .popup-header .close-btn {
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            color: #6c757d;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .candle-popup .popup-header .close-btn:hover {
+            background-color: #f8f9fa;
+            color: #dc3545;
+        }
+        .candle-popup table {
+            margin-bottom: 0;
+        }
+        .candle-popup table th {
+            width: 40%;
+            background-color: #f8f9fa;
+            font-weight: 600;
+            padding: 8px;
+        }
+        .candle-popup table td {
+            text-align: right;
+            padding: 8px;
+            font-weight: 500;
+        }
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 1999;
+            display: none;
+        }
+        
+        /* Ensure overlay divs are clickable */
+        #clickOverlay {
+            pointer-events: none;
+        }
+        #clickOverlay > div {
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Price Chart - {{ ticker }}
+                </h5>
+                <button class="btn btn-sm btn-light" onclick="window.close()">
+                    <i class="fas fa-times"></i> Close Tab
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row controls">
+                    <div class="col-md-3">
+                        <select class="form-select" id="chartFrequency">
+                            <option value="1D">Daily</option>
+                            <option value="1H">Hourly</option>
+                            <option value="15min">15 Minutes</option>
+                            <option value="5min">5 Minutes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="chartYearFrom">
+                            {% for year in year_range %}
+                                <option value="{{ year }}" {% if year == 2025 %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="chartYearTo">
+                            {% for year in year_range %}
+                                <option value="{{ year }}" {% if year == 2026 %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="loadChart()">
+                            <i class="fas fa-sync-alt me-2"></i>Update Chart
+                        </button>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary" onclick="resetZoom()">
+                                <i class="fas fa-undo me-1"></i>Reset View
+                            </button>
+                        </div>
+                        <small class="text-muted ms-2">
+                            <i class="fas fa-mouse-pointer me-1"></i>Click candlestick for details | 
+                            <i class="fas fa-arrows-alt me-1"></i>Drag to pan | 
+                            <i class="fas fa-search-plus me-1"></i>Scroll to zoom
+                        </small>
+                    </div>
+                </div>
+                <div id="chartContainer" style="position: relative;">
+                    <div id="priceChart" style="width:100%; height:550px;"></div>
+                    <div id="clickOverlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; display: flex; flex-wrap: nowrap;"></div>
+                    
+                    <!-- Popup overlay (click outside to close) -->
+                    <div id="popupOverlay" class="popup-overlay" onclick="hidePopup()"></div>
+                    
+                    <!-- Candle details popup -->
+                    <div id="candlePopup" class="candle-popup">
+                        <div class="popup-header">
+                            <h6 id="popupTitle">Candle Details - {{ ticker }}</h6>
+                            <span class="close-btn" onclick="hidePopup()">&times;</span>
+                        </div>
+                        <div id="popupContent">
+                            <table class="table table-sm table-bordered">
+                                <tr><th>Date:</th><td id="popupDate"></td></tr>
+                                <tr><th>Open:</th><td id="popupOpen" class="fw-bold"></td></tr>
+                                <tr><th>High:</th><td id="popupHigh" class="text-success fw-bold"></td></tr>
+                                <tr><th>Low:</th><td id="popupLow" class="text-danger fw-bold"></td></tr>
+                                <tr><th>Close:</th><td id="popupClose" class="fw-bold"></td></tr>
+                                <tr><th>Volume:</th><td id="popupVolume"></td></tr>
+                                <tr><th>Change:</th><td id="popupChange"></td></tr>
+                                <tr><th>Range:</th><td id="popupRange"></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let plotlyChart = null;
+        let currentData = null;
+        let overlayDivs = [];
+        const ticker = "{{ ticker }}";
+        
+        $(document).ready(function() {
+            loadChart();
+            
+            // Click anywhere on the document to hide popup (except the popup itself)
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#candlePopup').length) {
+                    hidePopup();
+                }
+            });
+            
+            // Prevent double-click on the chart from triggering default behavior
+            $('#priceChart').on('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+        });
+        
+        function showPopup(data) {
+            $('#popupDate').text(data.date);
+            $('#popupOpen').text('$' + data.open.toFixed(2));
+            $('#popupHigh').text('$' + data.high.toFixed(2));
+            $('#popupLow').text('$' + data.low.toFixed(2));
+            $('#popupClose').text('$' + data.close.toFixed(2));
+            $('#popupVolume').text(data.volume.toLocaleString());
+            
+            const changeClass = data.change >= 0 ? 'text-success' : 'text-danger';
+            const changeSign = data.change >= 0 ? '+' : '';
+            $('#popupChange').html(`<span class="${changeClass} fw-bold">${changeSign}${data.change.toFixed(2)} (${changeSign}${data.changePercent}%)</span>`);
+            
+            $('#popupRange').html(`<span class="fw-bold">$${data.range.toFixed(2)} (${data.rangePercent}%)</span>`);
+            
+            // Position the popup near the click, but keep it within viewport
+            const popup = document.getElementById('candlePopup');
+            popup.style.display = 'block';
+            
+            // Center the popup on the chart
+            const chartContainer = document.getElementById('chartContainer');
+            const containerRect = chartContainer.getBoundingClientRect();
+            
+            // Calculate position to center the popup
+            const popupWidth = 320;
+            const popupHeight = 300;
+            const left = (containerRect.width / 2) - (popupWidth / 2);
+            const top = (containerRect.height / 2) - (popupHeight / 2);
+            
+            popup.style.left = Math.max(10, Math.min(left, containerRect.width - popupWidth - 10)) + 'px';
+            popup.style.top = Math.max(10, Math.min(top, containerRect.height - popupHeight - 10)) + 'px';
+            
+            $('#popupOverlay').show();
+        }
+        
+        function hidePopup() {
+            document.getElementById('candlePopup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'none';
+        }
+        
+        function openCandleDetails(date, open, high, low, close, volume) {
+            const change = close - open;
+            const changePercent = ((change / open) * 100).toFixed(2);
+            const range = high - low;
+            const rangePercent = ((range / low) * 100).toFixed(2);
+            
+            const formattedDate = date.toLocaleDateString("en-US", {
+                weekday: "short",
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+            
+            showPopup({
+                date: formattedDate,
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                volume: volume,
+                change: change,
+                changePercent: changePercent,
+                range: range,
+                rangePercent: rangePercent
+            });
+        }
+        
+        function createOverlays() {
+            if (!currentData || !plotlyChart) return;
+            
+            const overlay = document.getElementById("clickOverlay");
+            overlay.innerHTML = "";
+            overlayDivs = [];
+            
+            // Small delay to ensure the plot is fully rendered
+            setTimeout(function() {
+                const gd = document.getElementById("priceChart");
+                if (!gd) return;
+                
+                const plotWidth = gd.offsetWidth;
+                if (plotWidth === 0) return;
+                
+                const dates = currentData.dates.map(d => new Date(d));
+                const barCount = dates.length;
+                const barWidth = plotWidth / barCount * 0.7;
+                
+                for (let i = 0; i < barCount; i++) {
+                    const barDiv = document.createElement("div");
+                    barDiv.style.position = "absolute";
+                    barDiv.style.width = barWidth + "px";
+                    barDiv.style.height = "100%";
+                    barDiv.style.left = ((i * (plotWidth / barCount)) + (plotWidth / barCount * 0.15)) + "px";
+                    barDiv.style.top = "0";
+                    barDiv.style.backgroundColor = "transparent";
+                    barDiv.style.pointerEvents = "auto";
+                    barDiv.style.cursor = "pointer";
+                    barDiv.style.zIndex = "1000";
+                    barDiv.title = dates[i].toLocaleDateString() + " - Click for details";
+                    
+                    barDiv.addEventListener("click", (function(index) {
+                        return function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const date = dates[index];
+                            const open = currentData.open[index];
+                            const high = currentData.high[index];
+                            const low = currentData.low[index];
+                            const close = currentData.close[index];
+                            const volume = currentData.volume[index];
+                            
+                            openCandleDetails(date, open, high, low, close, volume);
+                        };
+                    })(i));
+                    
+                    // Prevent double-click on overlay from triggering plot events
+                    barDiv.addEventListener("dblclick", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    });
+                    
+                    overlay.appendChild(barDiv);
+                    overlayDivs.push(barDiv);
+                }
+            }, 100);
+        }
+        
+        function resetZoom() {
+            if (plotlyChart) {
+                Plotly.relayout("priceChart", {
+                    "xaxis.autorange": true,
+                    "yaxis.autorange": true
+                }).then(() => createOverlays());
+            }
+        }
+        
+        function loadChart() {
+            let frequency = $("#chartFrequency").val();
+            let yearFrom = $("#chartYearFrom").val();
+            let yearTo = $("#chartYearTo").val();
+            
+            $("#priceChart").hide();
+            $("#chartContainer").append('<div class="text-center" id="chartLoading"><div class="spinner-border text-primary" role="status"></div></div>');
+            
+            $.ajax({
+                url: "/markets/api/chart-data/",
+                data: { ticker: ticker, frequency: frequency, start_year: yearFrom, end_year: yearTo },
+                success: function(data) {
+                    $("#chartLoading").remove();
+                    $("#priceChart").show();
+                    
+                    if (data.error) { alert(data.error); return; }
+                    if (plotlyChart) { Plotly.purge("priceChart"); }
+                    
+                    currentData = data;
+                    const dates = data.dates.map(d => new Date(d));
+                    
+                    const volumeColors = [];
+                    for (let i = 0; i < dates.length; i++) {
+                        if (i === 0) {
+                            volumeColors.push("rgba(128,128,128,0.5)");
+                        } else {
+                            volumeColors.push(data.close[i] >= data.open[i] 
+                                ? "rgba(38,166,154,0.5)" 
+                                : "rgba(239,83,80,0.5)");
+                        }
+                    }
+                    
+                    const candlestickTrace = {
+                        x: dates,
+                        open: data.open,
+                        high: data.high,
+                        low: data.low,
+                        close: data.close,
+                        type: "candlestick",
+                        name: "Price",
+                        showlegend: false,
+                        increasing: { line: { color: "#26a69a" }, fillcolor: "#26a69a" },
+                        decreasing: { line: { color: "#ef5350" }, fillcolor: "#ef5350" },
+                        whiskerwidth: 0.8,
+                        hoverinfo: "none"
+                    };
+                    
+                    const volumeTrace = {
+                        x: dates,
+                        y: data.volume,
+                        type: "bar",
+                        name: "Volume",
+                        marker: { color: volumeColors },
+                        yaxis: "y2",
+                        hoverinfo: "none",
+                        showlegend: false
+                    };
+                    
+                    const layout = {
+                        title: { 
+                            text: ticker + " - " + (frequency === "1D" ? "Daily" : frequency) + " Chart (" + yearFrom + "-" + yearTo + ")", 
+                            font: { size: 16 } 
+                        },
+                        xaxis: { 
+                            title: "Date", 
+                            rangeslider: { visible: false }, 
+                            type: "date",
+                            fixedrange: false
+                        },
+                        yaxis: { 
+                            title: "Price ($)", 
+                            side: "left", 
+                            tickprefix: "$", 
+                            tickformat: ",.2f",
+                            fixedrange: false
+                        },
+                        yaxis2: { 
+                            title: "", 
+                            side: "right", 
+                            overlaying: "y", 
+                            position: 0.95,
+                            tickformat: ",.0f", 
+                            range: [0, Math.max(...data.volume) * 8],
+                            showticklabels: false, 
+                            showgrid: false, 
+                            zeroline: false,
+                            fixedrange: false
+                        },
+                        margin: { l: 60, r: 30, t: 60, b: 60 },
+                        dragmode: "pan",
+                        hovermode: false,
+                        showlegend: false,
+                        // Disable double-click zoom
+                        doubleClick: false
+                    };
+                    
+                    const config = {
+                        responsive: true,
+                        displaylogo: false,
+                        doubleClick: false, // Disable double-click zoom
+                        modeBarButtonsToRemove: [
+                            "zoom2d", "pan2d", "select2d", "lasso2d",
+                            "zoomIn2d", "zoomOut2d", "autoScale2d",
+                            "hoverClosestCartesian", "hoverCompareCartesian",
+                            "toggleSpikelines"
+                        ],
+                        modeBarButtonsToAdd: ["resetScale2d"]
+                    };
+                    
+                    Plotly.newPlot("priceChart", [candlestickTrace, volumeTrace], layout, config)
+                        .then(function() {
+                            plotlyChart = true;
+                            createOverlays();
+                            
+                            // Recreate overlays after any plot updates
+                            document.getElementById("priceChart").on("plotly_relayout", 
+                                function() { setTimeout(createOverlays, 100); });
+                            
+                            // Prevent double-click on the plot
+                            document.getElementById("priceChart").addEventListener("dblclick", function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            });
+                        });
+                },
+                error: function(xhr, status, error) {
+                    $("#chartLoading").remove();
+                    $("#priceChart").show();
+                    alert("Error loading chart data: " + error);
+                }
+            });
+        }
+        
+        $(window).resize(function() {
+            if (plotlyChart) {
+                createOverlays();
+            }
+        });
+    </script>
+</body>
+</html>
