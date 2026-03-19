@@ -249,3 +249,78 @@ class SymbolListView(FilterView):
     def get(self, request, *args, **kwargs):
         symbols = Symbol.objects.filter(is_active=True).values_list('ticker', flat=True).order_by('ticker')
         return JsonResponse({'symbols': list(symbols)})
+
+
+class IndicatorDataView(FilterView):
+    """API endpoint for technical indicator data"""
+
+    def get(self, request, *args, **kwargs):
+        ticker = request.GET.get('ticker')
+        frequency = request.GET.get('frequency', '1D')
+        start_year = int(request.GET.get('start_year', 2020))
+        end_year = int(request.GET.get('end_year', 2026))
+        indicators = request.GET.getlist('indicators[]')
+
+        if not ticker:
+            return JsonResponse({'error': 'Ticker required'}, status=400)
+
+        if not indicators:
+            return JsonResponse({})
+
+        try:
+            symbol = Symbol.objects.get(ticker=ticker)
+
+            # Get OHLCV data for the year range
+            ohlcv_data = OHLCVData.objects.filter(
+                symbol=symbol,
+                frequency=frequency,
+                year__gte=start_year,
+                year__lte=end_year
+            ).order_by('year')
+
+            if not ohlcv_data:
+                return JsonResponse({'error': 'No data found'}, status=404)
+
+            # Combine data from multiple years
+            import pandas as pd
+            dfs = []
+            for data in ohlcv_data:
+                df = data.get_data_as_dataframe()
+                if df is not None and not df.empty:
+                    dfs.append(df)
+
+            if dfs:
+                combined_df = pd.concat(dfs)
+                combined_df.sort_index(inplace=True)
+
+                # Calculate indicators
+                from .indicators import TechnicalIndicators
+                indicator_results = TechnicalIndicators.calculate_indicators(
+                    combined_df, indicators
+                )
+
+                # Prepare dates for response
+                dates = combined_df.index.strftime('%Y-%m-%dT%H:%M:%S').tolist()
+
+                result = {
+                    'dates': dates,
+                    'indicators': indicator_results
+                }
+
+                return JsonResponse(result)
+
+        except Exception as e:
+            logger.error(f"Error calculating indicators: {str(e)}", exc_info=True)
+            return JsonResponse({'error': str(e)}, status=500)
+
+        return JsonResponse({'error': 'No data available'}, status=404)
+
+
+class AvailableIndicatorsView(FilterView):
+    """API endpoint to get available technical indicators"""
+
+    def get(self, request, *args, **kwargs):
+        from .indicators import TechnicalIndicators
+        indicators = TechnicalIndicators.get_available_indicators()
+        return JsonResponse({'indicators': indicators})
+

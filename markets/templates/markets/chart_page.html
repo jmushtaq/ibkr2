@@ -15,12 +15,12 @@
             padding: 20px; 
             background-color: #f8f9fa; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            overflow: hidden; /* Prevent page scrolling */
+            overflow: hidden;
         }
         .container-fluid { 
             max-width: 1600px; 
             margin: 0 auto; 
-            height: calc(100vh - 40px); /* Full height minus padding */
+            height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
         }
@@ -31,7 +31,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 0; /* Important for flex child */
+            min-height: 0;
         }
         .card-header { 
             background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); 
@@ -73,6 +73,24 @@
         }
         .form-select, .btn { 
             border-radius: 6px; 
+        }
+        .form-switch .form-check-input {
+            width: 2.5em;
+            height: 1.25em;
+            margin-right: 0.5em;
+            cursor: pointer;
+        }
+        .form-switch .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .form-check-label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.9rem;
+        }
+        .form-check-label i {
+            margin-right: 0.25em;
         }
         #chartContainer { 
             position: relative; 
@@ -197,9 +215,44 @@
             pointer-events: auto !important;
         }
         
-        /* Symbol selector width */
         .symbol-selector {
             width: 100%;
+        }
+
+        .badge-overlay { background-color: #28a745; }
+        .badge-oscillator { background-color: #fd7e14; }
+        .badge-volume { background-color: #17a2b8; }
+        .badge { 
+            display: inline-block; 
+            padding: 0.25em 0.4em; 
+            font-size: 75%; 
+            font-weight: 700; 
+            line-height: 1; 
+            text-align: center; 
+            white-space: nowrap; 
+            vertical-align: baseline; 
+            border-radius: 0.25rem;
+            color: white;
+            margin-right: 4px;
+        }
+
+        .status-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1500;
+            display: none;
+            font-size: 14px;
+            color: #0d6efd;
+            border: 1px solid #0d6efd;
+        }
+        .status-message i {
+            margin-right: 8px;
         }
     </style>
 </head>
@@ -273,19 +326,71 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Indicator selector row -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-2">
+                                        <label class="control-label mb-0"><i class="fas fa-chart-line me-1"></i>Technical Indicators</label>
+                                        <small class="d-block text-muted">
+                                            <span class="badge badge-overlay">Overlay</span>
+                                            <span class="badge badge-oscillator">Oscillator</span>
+                                            <span class="badge badge-volume">Volume</span>
+                                        </small>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <select class="form-select" id="indicatorSelect" multiple="multiple" style="width: 100%;">
+                                            <!-- Options will be loaded dynamically -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-outline-primary w-100" onclick="applyIndicators()">
+                                            <i class="fas fa-calculator me-2"></i>Apply
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mb-2">
                     <div class="col-12">
-                        <small class="text-muted">
-                            <i class="fas fa-mouse-pointer me-1"></i>Click candlestick for details | 
-                            <i class="fas fa-arrows-alt me-1"></i>Drag to pan | 
-                            <i class="fas fa-search-plus me-1"></i>Scroll to zoom (on chart) |
-                            <i class="fas fa-search me-1"></i>Type to search symbols
-                        </small>
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div class="btn-group btn-group-sm me-3 mb-2" role="group">
+                                <button class="btn btn-outline-secondary" onclick="resetZoom()">
+                                    <i class="fas fa-undo me-1"></i>Reset View
+                                </button>
+                            </div>
+                            <div class="form-check form-switch me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="panModeToggle" checked>
+                                <label class="form-check-label" for="panModeToggle">
+                                    <i class="fas fa-arrows-alt me-1"></i>Drag to Pan
+                                </label>
+                            </div>
+                            <div class="form-check form-switch me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="zoomModeToggle" checked>
+                                <label class="form-check-label" for="zoomModeToggle">
+                                    <i class="fas fa-search-plus me-1"></i>Scroll to Zoom
+                                </label>
+                            </div>
+                            <small class="text-muted mb-2">
+                                <i class="fas fa-mouse-pointer me-1"></i>Click candlestick for details |
+                                <i class="fas fa-search me-1"></i>Type to search symbols
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div id="chartContainer">
                     <div id="priceChart"></div>
                     <div id="clickOverlay"></div>
+                    <div id="statusMessage" class="status-message">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="statusText"></span>
+                    </div>
                     
                     <!-- Popup overlay (click outside to close) -->
                     <div id="popupOverlay" class="popup-overlay" onclick="hidePopup()"></div>
@@ -320,9 +425,17 @@
         let currentData = null;
         let overlayDivs = [];
         let allSymbols = [];
+        let indicatorTraces = [];
+        let chartReady = false;
+        let pendingIndicators = null;
+        let pendingDates = null;
+
         const currentTicker = "{{ ticker }}";
         
         $(document).ready(function() {
+            console.log('Document ready, loading indicators...');
+            loadAvailableIndicators();
+
             // Prevent browser zoom on Ctrl+/- and Ctrl+wheel
             document.addEventListener('keydown', function(e) {
                 if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '_')) {
@@ -345,12 +458,10 @@
                 allowClear: true,
                 width: '100%',
                 matcher: function(params, data) {
-                    // Custom matcher for better search
                     if ($.trim(params.term) === '') {
                         return data;
                     }
                     
-                    // Search in both id and text
                     const term = params.term.toUpperCase();
                     const id = data.id.toUpperCase();
                     const text = data.text.toUpperCase();
@@ -367,13 +478,12 @@
             $('#symbolSelect').on('change', function() {
                 const newSymbol = $(this).val();
                 if (newSymbol && newSymbol !== currentTicker) {
-                    // Update the chart with new symbol
+                    console.log('Symbol changed to:', newSymbol);
+                    chartReady = false;
+                    pendingIndicators = null;
+                    pendingDates = null;
                     loadChart(newSymbol);
-                    
-                    // Update popup symbol
                     $('#popupSymbol').text(newSymbol);
-                    
-                    // Update page title
                     document.title = 'Price Chart - ' + newSymbol;
                 }
             });
@@ -395,22 +505,29 @@
             });
         });
         
+        function showStatus(message, isError = false) {
+            console.log('Status:', message, isError ? '(ERROR)' : '');
+            $('#statusText').text(message);
+            $('#statusMessage').css('color', isError ? '#dc3545' : '#0d6efd');
+            $('#statusMessage').css('border-color', isError ? '#dc3545' : '#0d6efd');
+            $('#statusMessage').fadeIn(200);
+            setTimeout(function() {
+                $('#statusMessage').fadeOut(500);
+            }, 3000);
+        }
+        
         function loadAllSymbols() {
-            // Fetch all symbols from the API
             $.ajax({
                 url: "/markets/api/symbols/",
                 method: "GET",
                 success: function(data) {
                     allSymbols = data.symbols || [];
                     
-                    // Populate select2 with symbols
                     const select = $('#symbolSelect');
                     select.empty();
                     
-                    // Add current ticker first
                     select.append(new Option(currentTicker, currentTicker, true, true));
                     
-                    // Add all other symbols
                     allSymbols.forEach(function(symbol) {
                         if (symbol !== currentTicker) {
                             select.append(new Option(symbol, symbol));
@@ -439,15 +556,12 @@
             
             $('#popupRange').html(`<span class="fw-bold">$${data.range.toFixed(2)} (${data.rangePercent}%)</span>`);
             
-            // Position the popup near the click, but keep it within viewport
             const popup = document.getElementById('candlePopup');
             popup.style.display = 'block';
             
-            // Center the popup on the chart
             const chartContainer = document.getElementById('chartContainer');
             const containerRect = chartContainer.getBoundingClientRect();
             
-            // Calculate position to center the popup
             const popupWidth = 320;
             const popupHeight = 350;
             const left = (containerRect.width / 2) - (popupWidth / 2);
@@ -500,7 +614,6 @@
             overlay.innerHTML = "";
             overlayDivs = [];
             
-            // Small delay to ensure the plot is fully rendered
             setTimeout(function() {
                 const gd = document.getElementById("priceChart");
                 if (!gd) return;
@@ -540,7 +653,6 @@
                         };
                     })(i));
                     
-                    // Prevent double-click on overlay from triggering plot events
                     barDiv.addEventListener("dblclick", function(e) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -554,19 +666,79 @@
         }
         
         function resetZoom() {
-            if (plotlyChart) {
+            if (plotlyChart && typeof plotlyChart === 'object') {
                 Plotly.relayout("priceChart", {
                     "xaxis.autorange": true,
                     "yaxis.autorange": true
-                }).then(() => createOverlays());
+                }).then(() => {
+                    createOverlays();
+                    // Reapply current toggle states after reset
+                    const panEnabled = $('#panModeToggle').is(':checked');
+                    const zoomEnabled = $('#zoomModeToggle').is(':checked');
+                    Plotly.relayout('priceChart', {
+                        'dragmode': panEnabled ? 'pan' : 'zoom',
+                        'scrollZoom': zoomEnabled
+                    });
+                    showStatus('View reset');
+                });
+            }
+        }
+        
+        // Pan and Zoom toggle functions
+        function setupModeToggles() {
+            // Remove existing listeners to prevent duplicates
+            $('#panModeToggle').off('change');
+            $('#zoomModeToggle').off('change');
+            
+            $('#panModeToggle').on('change', function() {
+                const isEnabled = $(this).is(':checked');
+                if (plotlyChart && typeof plotlyChart === 'object') {
+                    Plotly.relayout('priceChart', {
+                        'dragmode': isEnabled ? 'pan' : 'zoom'
+                    }).then(() => {
+                        // Update cursor style
+                        const gd = document.getElementById('priceChart');
+                        if (gd) {
+                            gd.style.cursor = isEnabled ? 'grab' : 'default';
+                        }
+                        showStatus(isEnabled ? 'Pan mode enabled - Drag to pan' : 'Pan mode disabled - Drag to zoom');
+                    });
+                }
+            });
+            
+            $('#zoomModeToggle').on('change', function() {
+                const isEnabled = $(this).is(':checked');
+                if (plotlyChart && typeof plotlyChart === 'object') {
+                    Plotly.relayout('priceChart', {
+                        'scrollZoom': isEnabled
+                    }).then(() => {
+                        showStatus(isEnabled ? 'Zoom mode enabled - Scroll to zoom' : 'Zoom mode disabled');
+                    });
+                }
+            });
+            
+            // Set initial cursor
+            const gd = document.getElementById('priceChart');
+            if (gd) {
+                gd.style.cursor = $('#panModeToggle').is(':checked') ? 'grab' : 'default';
             }
         }
         
         function loadChart(symbol = null) {
+            console.log('loadChart called with symbol:', symbol);
+            
+            // Remove all indicators
+            removeAllIndicators();
+            chartReady = false;
+            pendingIndicators = null;
+            pendingDates = null;
+
             const ticker = symbol || $("#symbolSelect").val() || currentTicker;
             let frequency = $("#chartFrequency").val();
             let yearFrom = $("#chartYearFrom").val();
             let yearTo = $("#chartYearTo").val();
+            
+            console.log('Loading chart for:', ticker, frequency, yearFrom, yearTo);
             
             $("#priceChart").hide();
             $("#chartContainer").append('<div class="text-center" id="chartLoading"><div class="spinner-border text-primary" role="status"></div></div>');
@@ -575,11 +747,20 @@
                 url: "/markets/api/chart-data/",
                 data: { ticker: ticker, frequency: frequency, start_year: yearFrom, end_year: yearTo },
                 success: function(data) {
+                    console.log('Chart data received, rows:', data.dates.length);
                     $("#chartLoading").remove();
                     $("#priceChart").show();
                     
-                    if (data.error) { alert(data.error); return; }
-                    if (plotlyChart) { Plotly.purge("priceChart"); }
+                    if (data.error) { 
+                        console.error('Chart data error:', data.error);
+                        alert(data.error); 
+                        return; 
+                    }
+                    
+                    if (plotlyChart) { 
+                        console.log('Purging existing chart');
+                        Plotly.purge("priceChart"); 
+                    }
                     
                     currentData = data;
                     const dates = data.dates.map(d => new Date(d));
@@ -606,7 +787,7 @@
                         showlegend: false,
                         increasing: { line: { color: "#26a69a" }, fillcolor: "#26a69a" },
                         decreasing: { line: { color: "#ef5350" }, fillcolor: "#ef5350" },
-                        whiskerwidth: 0,  // <-- Set to 0 to remove horizontal bars
+                        whiskerwidth: 0,
                         hoverinfo: "none"
                     };
                     
@@ -630,14 +811,17 @@
                             title: "Date", 
                             rangeslider: { visible: false }, 
                             type: "date",
-                            fixedrange: false
+                            fixedrange: false,
+                            autorange: true
                         },
                         yaxis: { 
                             title: "Price ($)", 
                             side: "left", 
                             tickprefix: "$", 
                             tickformat: ",.2f",
-                            fixedrange: false
+                            fixedrange: false,
+                            autorange: true,
+                            domain: [0, 1] // Will be adjusted when indicators are added
                         },
                         yaxis2: { 
                             title: "", 
@@ -649,21 +833,22 @@
                             showticklabels: false, 
                             showgrid: false, 
                             zeroline: false,
-                            fixedrange: false
+                            fixedrange: false,
+                            domain: [0, 1] // Will be adjusted when indicators are added
                         },
-                        margin: { l: 60, r: 30, t: 60, b: 60 },
-                        dragmode: "pan",
+                        margin: { l: 60, r: 30, t: 60, b: 40 },
+                        dragmode: $('#panModeToggle').is(':checked') ? 'pan' : 'zoom',
                         hovermode: false,
                         showlegend: false,
                         doubleClick: false,
-                        scrollZoom: true
+                        scrollZoom: $('#zoomModeToggle').is(':checked')
                     };
                     
                     const config = {
                         responsive: true,
                         displaylogo: false,
                         doubleClick: false,
-                        scrollZoom: true,
+                        scrollZoom: $('#zoomModeToggle').is(':checked'),
                         modeBarButtonsToRemove: [
                             "zoom2d", "pan2d", "select2d", "lasso2d",
                             "zoomIn2d", "zoomOut2d", "autoScale2d",
@@ -673,31 +858,45 @@
                         modeBarButtonsToAdd: ["resetScale2d"]
                     };
                     
+                    console.log('Creating new plot...');
                     Plotly.newPlot("priceChart", [candlestickTrace, volumeTrace], layout, config)
-                        .then(function() {
-                            plotlyChart = true;
+                        .then(function(gd) {
+                            console.log('Plot created successfully, setting chartReady = true');
+                            plotlyChart = gd;
+                            chartReady = true;
                             createOverlays();
+                            setupModeToggles();
+                            setupMouseHandlers();
                             
-                            // Recreate overlays after any plot updates
                             document.getElementById("priceChart").on("plotly_relayout", 
                                 function() { setTimeout(createOverlays, 100); });
                             
-                            // Prevent double-click on the plot
                             document.getElementById("priceChart").addEventListener("dblclick", function(e) {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 return false;
                             });
                             
-                            // Ensure scroll zoom works only on the plot
                             document.getElementById("priceChart").addEventListener("wheel", function(e) {
                                 if (e.ctrlKey) {
-                                    e.preventDefault(); // Prevent browser zoom
+                                    e.preventDefault();
                                 }
                             }, { passive: false });
+                            
+                            // Process any pending indicators
+                            if (pendingIndicators && pendingDates) {
+                                console.log('Processing pending indicators');
+                                showStatus('Adding indicators...');
+                                setTimeout(function() {
+                                    addIndicatorTraces(pendingIndicators, pendingDates);
+                                    pendingIndicators = null;
+                                    pendingDates = null;
+                                }, 500);
+                            }
                         });
                 },
                 error: function(xhr, status, error) {
+                    console.error('Error loading chart data:', error);
                     $("#chartLoading").remove();
                     $("#priceChart").show();
                     alert("Error loading chart data: " + error);
@@ -705,6 +904,524 @@
             });
         }
         
+        // Load available indicators
+        function loadAvailableIndicators() {
+            $.ajax({
+                url: "/markets/api/indicators/list/",
+                method: "GET",
+                success: function(data) {
+                    console.log('Available indicators loaded:', data.indicators.length);
+                    const select = $('#indicatorSelect');
+                    select.empty();
+                    
+                    const categories = {};
+                    data.indicators.forEach(function(indicator) {
+                        if (!categories[indicator.category]) {
+                            categories[indicator.category] = [];
+                        }
+                        categories[indicator.category].push(indicator);
+                    });
+                    
+                    const categoryOrder = ['Overlay', 'Oscillator', 'Volume'];
+                    categoryOrder.forEach(function(category) {
+                        if (categories[category]) {
+                            const optgroup = $('<optgroup>').attr('label', category);
+                            categories[category].forEach(function(indicator) {
+                                optgroup.append($('<option>')
+                                    .val(indicator.id)
+                                    .text(indicator.name)
+                                );
+                            });
+                            select.append(optgroup);
+                        }
+                    });
+                    
+                    select.select2({
+                        placeholder: 'Select technical indicators...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading indicators:', error);
+                }
+            });
+        }
+
+        // Apply selected indicators
+        function applyIndicators() {
+            console.log('applyIndicators called, chartReady =', chartReady);
+            
+            const selectedIndicators = $('#indicatorSelect').val();
+            console.log('Selected indicators:', selectedIndicators);
+            
+            if (!selectedIndicators || selectedIndicators.length === 0) {
+                console.log('No indicators selected, clearing');
+                removeAllIndicators();
+                showStatus('Indicators cleared');
+                return;
+            }
+            
+            if (!chartReady) {
+                console.log('Chart not ready, will retry in 500ms');
+                showStatus('Chart loading, please wait...');
+                setTimeout(applyIndicators, 500);
+                return;
+            }
+            
+            console.log('Chart is ready, proceeding to load indicators');
+            
+            // Remove all existing indicators first
+            removeAllIndicators();
+            
+            const ticker = $("#symbolSelect").val() || currentTicker;
+            let frequency = $("#chartFrequency").val();
+            let yearFrom = $("#chartYearFrom").val();
+            let yearTo = $("#chartYearTo").val();
+            
+            $('#chartContainer').append('<div class="text-center" id="indicatorLoading"><div class="spinner-border text-info" role="status"></div></div>');
+            showStatus('Loading indicators...');
+            
+            $.ajax({
+                url: "/markets/api/indicators/",
+                method: "GET",
+                data: {
+                    ticker: ticker,
+                    frequency: frequency,
+                    start_year: yearFrom,
+                    end_year: yearTo,
+                    'indicators[]': selectedIndicators
+                },
+                success: function(data) {
+                    console.log('Indicator data received:', Object.keys(data.indicators || {}));
+                    $('#indicatorLoading').remove();
+                    
+                    if (data.error) {
+                        console.error('Indicator error:', data.error);
+                        showStatus('Error: ' + data.error, true);
+                        return;
+                    }
+                    
+                    if (data.indicators && Object.keys(data.indicators).length > 0) {
+                        console.log('Adding indicator traces, chartReady =', chartReady);
+                        if (chartReady) {
+                            showStatus('Adding indicators...');
+                            addIndicatorTraces(data.indicators, data.dates);
+                        } else {
+                            console.log('Chart not ready, storing for later');
+                            pendingIndicators = data.indicators;
+                            pendingDates = data.dates;
+                            showStatus('Chart loading, indicators will appear soon...');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error loading indicators:', error);
+                    $('#indicatorLoading').remove();
+                    showStatus('Error loading indicators: ' + error, true);
+                }
+            });
+        }
+
+        // Remove all indicators safely
+        function removeAllIndicators() {
+            console.log('removeAllIndicators called');
+            
+            if (!plotlyChart || typeof plotlyChart !== 'object') {
+                console.log('No valid chart to remove indicators from');
+                indicatorTraces = [];
+                return;
+            }
+            
+            try {
+                const traceCount = plotlyChart.data.length;
+                console.log('Current trace count:', traceCount);
+                
+                if (traceCount > 2) {
+                    for (let i = traceCount - 1; i >= 2; i--) {
+                        Plotly.deleteTraces('priceChart', i);
+                    }
+                }
+                
+                indicatorTraces = [];
+                
+                // Reset layout - remove all subplot axes and restore main chart to full height
+                const layoutUpdate = {
+                    grid: null,
+                    shapes: [],
+                    'yaxis.domain': [0, 1],
+                    'yaxis2.domain': [0, 1],
+                    'dragmode': $('#panModeToggle').is(':checked') ? 'pan' : 'zoom',
+                    'scrollZoom': $('#zoomModeToggle').is(':checked')
+                };
+
+                // Remove all extra y-axes (y3 and above)
+                for (let i = 3; i <= 10; i++) {
+                    layoutUpdate[`yaxis${i}`] = null;
+                }
+                
+                Plotly.relayout('priceChart', layoutUpdate);
+                console.log('Indicators removed');
+            } catch (e) {
+                console.log('Error removing indicators:', e);
+            }
+        }
+
+        // Add indicator traces safely
+        function addIndicatorTraces(indicators, dates) {
+            console.log('addIndicatorTraces called, chartReady =', chartReady);
+            
+            if (!plotlyChart || typeof plotlyChart !== 'object') {
+                console.log('plotlyChart not available');
+                showStatus('Chart not ready, retrying...');
+                return;
+            }
+            
+            try {
+                const datesObj = dates.map(d => new Date(d));
+                console.log('Processing indicators for dates range:', datesObj[0], 'to', datesObj[datesObj.length-1]);
+                
+                const overlayIndicators = {};
+                const subplotIndicators = {};
+                
+                Object.keys(indicators).forEach(function(key) {
+                    const indicator = indicators[key];
+                    if (indicator.type === 'overlay') {
+                        overlayIndicators[key] = indicator;
+                    } else {
+                        subplotIndicators[key] = indicator;
+                    }
+                });
+                
+                console.log('Overlay indicators:', Object.keys(overlayIndicators));
+                console.log('Subplot indicators:', Object.keys(subplotIndicators));
+                
+                // Add overlay indicators (on main chart)
+                const overlayTraces = [];
+                Object.keys(overlayIndicators).forEach(function(key) {
+                    const indicator = overlayIndicators[key];
+                    
+                    const trace = {
+                        x: datesObj,
+                        y: indicator.data,
+                        type: indicator.subtype || 'scatter',
+                        mode: 'lines',
+                        name: indicator.name,
+                        yaxis: 'y',
+                        line: { width: 1.5 }
+                    };
+                    
+                    if (key === 'bbands_upper' || key === 'bbands_lower') {
+                        trace.line.dash = 'dash';
+                        trace.line.width = 1;
+                        trace.line.color = 'rgba(128, 128, 128, 0.7)';
+                    } else if (key === 'bbands_middle') {
+                        trace.line.color = 'rgba(0, 100, 255, 0.7)';
+                    } else if (key === 'sma') {
+                        trace.line.color = 'rgba(255, 165, 0, 0.8)';
+                    } else if (key === 'ema') {
+                        trace.line.color = 'rgba(255, 0, 255, 0.8)';
+                    } else if (key === 'atr') {
+                        trace.line.color = 'rgba(128, 0, 128, 0.8)';
+                        trace.visible = 'legendonly';
+                    } else if (key === 'psar') {
+                        trace.mode = 'markers';
+                        trace.marker = {
+                            symbol: 'circle',
+                            size: 4,
+                            color: 'rgba(255, 215, 0, 0.8)'
+                        };
+                    }
+                    
+                    overlayTraces.push(trace);
+                });
+                
+                if (overlayTraces.length > 0) {
+                    console.log('Adding overlay traces:', overlayTraces.length);
+                    Plotly.addTraces('priceChart', overlayTraces);
+                    showStatus(`Added ${overlayTraces.length} overlay indicators`);
+                }
+                
+                // Add subplot indicators
+                if (Object.keys(subplotIndicators).length > 0) {
+                    console.log('Adding subplot indicators');
+                    addSubplotIndicators(subplotIndicators, datesObj);
+                } else {
+                    showStatus('Indicators added successfully');
+                }
+            } catch (e) {
+                console.log('Error adding indicators:', e);
+                showStatus('Error adding indicators', true);
+            }
+        }
+
+        // Add subplot indicators safely
+        function addSubplotIndicators(indicators, datesObj) {
+            if (!plotlyChart || typeof plotlyChart !== 'object') return;
+            
+            try {
+                // Group indicators by their base name
+                const groupedIndicators = {};
+                
+                Object.keys(indicators).forEach(function(key) {
+                    let groupKey = key;
+                    
+                    // Group stochastic lines together
+                    if (key === 'stoch_k' || key === 'stoch_d') {
+                        groupKey = 'stoch';
+                    }
+                    // Group MACD components together
+                    else if (key === 'macd' || key === 'macd_signal' || key === 'macd_hist') {
+                        groupKey = 'macd';
+                    }
+                    // Group Bollinger Bands are already overlay, not here
+                    else {
+                        groupKey = key;
+                    }
+                    
+                    if (!groupedIndicators[groupKey]) {
+                        groupedIndicators[groupKey] = {};
+                    }
+                    groupedIndicators[groupKey][key] = indicators[key];
+                });
+                
+                console.log('Grouped indicators:', Object.keys(groupedIndicators));
+                
+                const groupCount = Object.keys(groupedIndicators).length;
+                
+                // Calculate heights: main chart gets 60% of height, subplots share remaining 40%
+                const mainChartHeight = 0.6; // 60% for main chart
+                const subplotTotalHeight = 0.4; // 40% for all subplots
+                const subplotHeight = subplotTotalHeight / groupCount;
+                
+                // First, create all traces for each group
+                const allTraces = [];
+                
+                let groupIndex = 0;
+                Object.keys(groupedIndicators).forEach(function(groupKey) {
+                    const group = groupedIndicators[groupKey];
+                    
+                    // Create a subplot for this group
+                    const yaxisNum = 3 + groupIndex;
+                    const yaxisName = `y${yaxisNum}`;
+                    
+                    // Add all traces in this group to the same subplot
+                    Object.keys(group).forEach(function(key) {
+                        const indicator = group[key];
+                        
+                        const trace = {
+                            x: datesObj,
+                            y: indicator.data,
+                            type: indicator.subtype || 'scatter',
+                            mode: 'lines',
+                            name: indicator.name,
+                            yaxis: yaxisName,
+                            xaxis: 'x',
+                            line: { width: 1.5 }
+                        };
+                        
+                        // Special styling based on indicator type
+                        if (key === 'stoch_k') {
+                            trace.line.color = '#ff9800';
+                            trace.line.width = 2;
+                        } else if (key === 'stoch_d') {
+                            trace.line.color = '#2196f3';
+                            trace.line.width = 2;
+                            trace.line.dash = 'dash';
+                        } else if (key === 'rsi') {
+                            trace.line.color = '#9c27b0';
+                        } else if (key === 'macd') {
+                            trace.line.color = '#2196f3';
+                            trace.line.width = 2;
+                        } else if (key === 'macd_signal') {
+                            trace.line.color = '#ff9800';
+                            trace.line.width = 2;
+                            trace.line.dash = 'dash';
+                        } else if (key === 'macd_hist') {
+                            trace.type = 'bar';
+                            trace.marker = {
+                                color: indicator.data.map(val => val >= 0 ? '#26a69a' : '#ef5350')
+                            };
+                        } else if (key === 'cci') {
+                            trace.line.color = '#9c27b0';
+                        } else if (key === 'willr') {
+                            trace.line.color = '#f44336';
+                        } else if (key === 'mfi') {
+                            trace.line.color = '#4caf50';
+                        } else if (key === 'adx') {
+                            trace.line.color = '#ff9800';
+                        } else if (key === 'obv') {
+                            trace.line.color = '#795548';
+                        }
+                        
+                        allTraces.push(trace);
+                    });
+                    
+                    groupIndex++;
+                });
+                
+                // Add all traces at once
+                if (allTraces.length > 0) {
+                    Plotly.addTraces('priceChart', allTraces);
+                }
+                
+                // Now update the layout for all axes in a single call
+                const layoutUpdate = {
+                    'yaxis.domain': [1 - mainChartHeight, 1], // Main chart at top
+                    'yaxis2.domain': [1 - mainChartHeight, 1], // Volume shares same domain
+                    'dragmode': $('#panModeToggle').is(':checked') ? 'pan' : 'zoom',
+                    'scrollZoom': $('#zoomModeToggle').is(':checked')
+                };
+                
+                // Configure each subplot axis
+                groupIndex = 0;
+                Object.keys(groupedIndicators).forEach(function(groupKey) {
+                    const group = groupedIndicators[groupKey];
+                    const yaxisNum = 3 + groupIndex;
+                    
+                    // Calculate domain for this subplot (stacked from bottom)
+                    const domainStart = groupIndex * subplotHeight;
+                    const domainEnd = (groupIndex + 1) * subplotHeight;
+                    
+                    layoutUpdate[`yaxis${yaxisNum}`] = {
+                        title: getGroupTitle(groupKey),
+                        domain: [domainStart, domainEnd],
+                        showgrid: true,
+                        gridcolor: 'rgba(0,0,0,0.1)',
+                        zeroline: true,
+                        zerolinecolor: 'rgba(0,0,0,0.2)',
+                        side: 'right',
+                        position: 0.95 - (0.05 * groupIndex)
+                    };
+                    
+                    // Set range based on first indicator in group
+                    const firstKey = Object.keys(group)[0];
+                    if (group[firstKey] && group[firstKey].range) {
+                        layoutUpdate[`yaxis${yaxisNum}`].range = group[firstKey].range;
+                    }
+                    
+                    groupIndex++;
+                });
+                
+                // Apply all layout updates at once
+                Plotly.relayout('priceChart', layoutUpdate);
+                
+                // Add RSI thresholds if RSI is present (needs to be done after layout update)
+                if (indicators['rsi']) {
+                    setTimeout(function() {
+                        addRSIThresholds();
+                    }, 100);
+                }
+                
+                showStatus('Indicators added successfully');
+            } catch (e) {
+                console.log('Error adding subplot indicators:', e);
+            }
+        }
+
+        // Helper function to get group title
+        function getGroupTitle(groupKey) {
+            const titles = {
+                'stoch': 'Stochastic',
+                'macd': 'MACD',
+                'rsi': 'RSI',
+                'cci': 'CCI',
+                'willr': 'Williams %R',
+                'mfi': 'MFI',
+                'adx': 'ADX',
+                'obv': 'OBV'
+            };
+            return titles[groupKey] || groupKey.toUpperCase();
+        }
+
+        // Add RSI threshold lines safely
+        function addRSIThresholds() {
+            if (!plotlyChart || typeof plotlyChart !== 'object') return;
+            
+            try {
+                const shapes = [
+                    {
+                        type: 'line',
+                        xref: 'paper',
+                        yref: 'y3',
+                        x0: 0,
+                        y0: 70,
+                        x1: 1,
+                        y1: 70,
+                        line: {
+                            color: 'rgba(255, 0, 0, 0.3)',
+                            width: 1,
+                            dash: 'dash'
+                        }
+                    },
+                    {
+                        type: 'line',
+                        xref: 'paper',
+                        yref: 'y3',
+                        x0: 0,
+                        y0: 30,
+                        x1: 1,
+                        y1: 30,
+                        line: {
+                            color: 'rgba(0, 128, 0, 0.3)',
+                            width: 1,
+                            dash: 'dash'
+                        }
+                    },
+                    {
+                        type: 'line',
+                        xref: 'paper',
+                        yref: 'y3',
+                        x0: 0,
+                        y0: 50,
+                        x1: 1,
+                        y1: 50,
+                        line: {
+                            color: 'rgba(128, 128, 128, 0.2)',
+                            width: 1,
+                            dash: 'dot'
+                        }
+                    }
+                ];
+                
+                const currentLayout = plotlyChart.layout;
+                const existingShapes = currentLayout.shapes || [];
+                Plotly.relayout('priceChart', {
+                    shapes: existingShapes.concat(shapes)
+                });
+            } catch (e) {
+                console.log('Error adding RSI thresholds:', e);
+            }
+        }
+
+        // Add mouse event handlers for cursor changes
+        function setupMouseHandlers() {
+            const gd = document.getElementById('priceChart');
+            if (!gd) return;
+            
+            gd.addEventListener('mousedown', function() {
+                if ($('#panModeToggle').is(':checked')) {
+                    this.style.cursor = 'grabbing';
+                }
+            });
+            
+            gd.addEventListener('mouseup', function() {
+                if ($('#panModeToggle').is(':checked')) {
+                    this.style.cursor = 'grab';
+                } else {
+                    this.style.cursor = 'default';
+                }
+            });
+            
+            gd.addEventListener('mouseleave', function() {
+                if ($('#panModeToggle').is(':checked')) {
+                    this.style.cursor = 'grab';
+                } else {
+                    this.style.cursor = 'default';
+                }
+            });
+        }
+
         $(window).resize(function() {
             if (plotlyChart) {
                 createOverlays();

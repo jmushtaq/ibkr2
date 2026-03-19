@@ -12,3 +12,7 @@ celery==5.3.6
 python-dateutil==2.9.0
 django-extensions==4.1
 ipython==9.11.0
+
+# sudo apt-get update
+# sudo apt-get install ta-lib
+TA-Lib==0.6.8
