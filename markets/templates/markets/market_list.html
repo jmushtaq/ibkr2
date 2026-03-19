@@ -154,7 +154,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let priceChart = null;
 
@@ -167,7 +166,8 @@ $(document).on('click', 'a[href*="chart"]', function(e) {
     $('#chartSymbol').text(ticker);
     $('#chartModal').modal('show');
     
-    loadChart(ticker);
+    // Small delay to ensure modal is shown before loading chart
+    setTimeout(() => loadChart(ticker), 100);
 });
 
 function loadChart(ticker = null) {
@@ -179,6 +179,10 @@ function loadChart(ticker = null) {
     let yearFrom = $('#chartYearFrom').val();
     let yearTo = $('#chartYearTo').val();
     
+    // Show loading indicator
+    $('#priceChart').hide();
+    $('#chartModal .modal-body').append('<div class="text-center" id="chartLoading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
     $.ajax({
         url: '/markets/api/chart-data/',
         data: {
@@ -188,6 +192,9 @@ function loadChart(ticker = null) {
             end_year: yearTo
         },
         success: function(data) {
+            $('#chartLoading').remove();
+            $('#priceChart').show();
+            
             if (data.error) {
                 alert(data.error);
                 return;
@@ -198,17 +205,173 @@ function loadChart(ticker = null) {
             }
             
             const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // Parse dates properly
+            const dates = data.dates.map(date => new Date(date));
+            
+            // Determine time unit based on frequency and data range
+            let timeUnit = 'day';
+            if (frequency === '1D') {
+                if (dates.length > 0) {
+                    const dateRange = (dates[dates.length-1] - dates[0]) / (1000 * 60 * 60 * 24);
+                    if (dateRange <= 60) timeUnit = 'day';
+                    else if (dateRange <= 180) timeUnit = 'week';
+                    else timeUnit = 'month';
+                }
+            } else if (frequency === '1H') {
+                timeUnit = 'hour';
+            } else {
+                timeUnit = 'minute';
+            }
+            
+            // Chart options
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                stacked: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${ticker} - ${frequency === '1D' ? 'Daily' : frequency} Chart (${yearFrom}-${yearTo})`,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.label === 'Volume') {
+                                        label += context.parsed.y.toLocaleString();
+                                    } else {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: timeUnit,
+                            displayFormats: {
+                                'minute': 'HH:mm',
+                                'hour': 'HH:mm',
+                                'day': 'MMM d',
+                                'week': 'MMM d',
+                                'month': 'MMM yyyy',
+                                'quarter': 'MMM yyyy',
+                                'year': 'yyyy'
+                            },
+                            tooltipFormat: 'MMM d, yyyy HH:mm'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    'y-price': {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Price ($)'
+                        },
+                        grid: {
+                            color: 'rgba(75, 192, 192, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    },
+                    'y-volume': {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Volume'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1e6) {
+                                    return (value / 1e6).toFixed(1) + 'M';
+                                } else if (value >= 1e3) {
+                                    return (value / 1e3).toFixed(1) + 'K';
+                                }
+                                return value;
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Add zoom plugin options only if the plugin is available
+            if (typeof chartjsPluginZoom !== 'undefined') {
+                options.plugins.zoom = {
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x',
+                    }
+                };
+                
+                // Register the plugin if not already registered
+                if (!Chart.registry.plugins.get('zoom')) {
+                    Chart.register(chartjsPluginZoom);
+                    console.log('Zoom plugin registered');
+                }
+            } else {
+                console.log('Zoom plugin not available');
+            }
+            
             priceChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: data.dates,
+                    labels: dates,
                     datasets: [
                         {
                             label: 'Close Price',
                             data: data.close,
                             borderColor: 'rgb(75, 192, 192)',
                             backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            yAxisID: 'y-price'
+                            yAxisID: 'y-price',
+                            tension: 0.1,
+                            pointRadius: 1,
+                            borderWidth: 2,
+                            fill: false
                         },
                         {
                             label: 'Volume',
@@ -216,52 +379,19 @@ function loadChart(ticker = null) {
                             borderColor: 'rgb(255, 99, 132)',
                             backgroundColor: 'rgba(255, 99, 132, 0.2)',
                             yAxisID: 'y-volume',
-                            type: 'bar'
+                            type: 'bar',
+                            borderWidth: 1
                         }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    stacked: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `${ticker} - ${frequency} Chart`
-                        }
-                    },
-                    scales: {
-                        'y-price': {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Price ($)'
-                            }
-                        },
-                        'y-volume': {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Volume'
-                            },
-                            grid: {
-                                drawOnChartArea: false,
-                            },
-                        }
-                    }
-                }
+                options: options
             });
         },
         error: function(xhr, status, error) {
+            $('#chartLoading').remove();
+            $('#priceChart').show();
             alert('Error loading chart data: ' + error);
+            console.error('Chart error:', xhr.responseText);
         }
     });
 }
@@ -273,4 +403,3 @@ function exportToCSV() {
 }
 </script>
 {% endblock %}
-

@@ -10,3 +10,5 @@ redis==5.0.1
 django-redis==5.4.0
 celery==5.3.6
 python-dateutil==2.9.0
+django-extensions==4.1
+ipython==9.11.0

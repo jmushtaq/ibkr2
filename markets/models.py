@@ -100,13 +100,26 @@ class OHLCVData(models.Model):
         return f"{self.symbol.ticker} - {self.frequency} - {self.year}"
 
     def get_data_as_dataframe(self):
-        """Convert stored data to pandas DataFrame"""
+        """Convert stored data to pandas DataFrame with proper date handling"""
         import pandas as pd
+        import numpy as np
+
+        # Create DataFrame from the stored data
         df = pd.DataFrame(self.data)
+
         if 'dates' in df.columns:
-            df['dates'] = pd.to_datetime(df['dates'])
+            # Convert dates with explicit format and UTC
+            df['dates'] = pd.to_datetime(df['dates'], utc=True)
             df.set_index('dates', inplace=True)
+
+            # Ensure all numeric columns are float
+            numeric_cols = ['open', 'high', 'low', 'close', 'volume']
+            for col in numeric_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
         return df
+
 
 class PrecomputedMetrics(models.Model):
     """

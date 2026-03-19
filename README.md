@@ -43,10 +43,29 @@ python manage.py load_ohlcv_data
 python manage.py load_ohlcv_data --frequency 1D --year 2026
 python manage.py load_ohlcv_data --frequency 1D --year 2026 --data-dir ../ibkr/data/
 
+# Delete and reload data (or fix it)
+from markets.models import OHLCVData
+OHLCVData.objects.all().delete()
+PrecomputedMetrics.objects.all().delete()
+python manage.py load_ohlcv_data --frequency 1D --year 2026 --data-dir ../ibkr/data/
+
+## delete existing records and reload
+python manage.py load_ohlcv_data --frequency 1D --year 2026 --delete-existing --data-dir ../ibkr/data/
+
+## reload a specific symbol
+python manage.py load_ohlcv_data --frequency 1D --year 2026 --symbol FMCC --delete-existing --data-dir ../ibkr/data/
+
+## load without deleting (will update existing)
+python manage.py load_ohlcv_data --frequency 1D --year 2026 --data-dir ../ibkr/data/
+
+
 # 7. Install and start Redis (for caching)
 # Ubuntu/Debian:
 sudo apt-get install redis-server
 sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+redis-cli ping
 
 # 8. Run development server
 python manage.py runserver

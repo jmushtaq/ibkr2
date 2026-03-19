@@ -23,6 +23,7 @@ INSTALLED_APPS = [
         'django_tables2',
         'crispy_forms',
         'crispy_bootstrap5',
+        'django_extensions',
 
         # Local apps
         'markets',
@@ -87,7 +88,7 @@ CACHES = {
                 'LOCATION': 'redis://127.0.0.1:6379/1',
         'OPTIONS': {
                         'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                        'PARSER_CLASS': 'redis.connection.HiredisParser',
+                        #'PARSER_CLASS': 'redis.connection.HiredisParser',
                         'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
             'CONNECTION_POOL_CLASS_KWARGS': {
                                 'max_connections': 50,
@@ -126,5 +127,5 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Data directory
 #DATA_DIR = BASE_DIR / 'data'
-DATA_DIR = '../ibkr/data'
+DATA_DIR = '/home/ubuntu/projects/ibkr/data'
 
