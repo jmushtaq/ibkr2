@@ -1,0 +1,172 @@
+/* Custom styles */
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    border: none;
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+/* Table styles */
+.table th {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table td {
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* Positive/negative changes */
+.text-success {
+    color: #28a745 !important;
+    font-weight: 500;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: 500;
+}
+
+/* Filter section */
+#filterCollapse {
+    transition: all 0.3s ease;
+}
+
+.filter-section {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Hover effects */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,.05);
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    height: 500px;
+    width: 100%;
+}
+
+/* Loading spinner */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.8rem;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+    }
+}
+
+/* Tooltips */
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+[data-tooltip]:before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    display: none;
+    z-index: 1000;
+}
+
+.table td.text-end {
+        text-align: right !important;
+        
+}
+
+.table td.text-start {
+        text-align: left !important;
+        
+}
+
+.table td.fw-bold {
+        font-weight: 600 !important;
+        
+}
+
+/* Truncate long text */
+.text-truncate {
+        max-width: 200px;
+            overflow: hidden;
+                text-overflow: ellipsis;
+                    white-space: nowrap;
+                    
+}
+
+/* Price column */
+td.fw-bold {
+        font-weight: 600;
+        
+}
+
+/* Percentage colors */
+.text-success {
+        color: #28a745 !important;
+            font-weight: 500;
+            
+}
+
+.text-danger {
+        color: #dc3545 !important;
+            font-weight: 500;
+            
+}
+
+.text-muted {
+        color: #6c757d !important;
+        
+}
+
+/* Table row hover */
+.table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.075);
+        
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .table {
+                font-size: 0.8rem;
+    }
+    .text-truncate {
+                max-width: 100px;
+    }
+}
+
+[data-tooltip]:hover:before {
+    display: block;
+}
