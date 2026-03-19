@@ -229,3 +229,10 @@ class ChartPageView(FilterView):
         }
         return render(request, self.template_name, context)
 
+
+class SymbolListView(FilterView):
+    """API endpoint to get all symbols for the dropdown"""
+
+    def get(self, request, *args, **kwargs):
+        symbols = Symbol.objects.filter(is_active=True).values_list('ticker', flat=True).order_by('ticker')
+        return JsonResponse({'symbols': list(symbols)})
