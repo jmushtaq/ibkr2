@@ -6,10 +6,8 @@ from django_tables2 import SingleTableView, RequestConfig
 from django_filters.views import FilterView
 from django_tables2.views import SingleTableMixin
 from django.contrib.postgres.search import SearchVector
-from django.http import JsonResponse
-from django.http import HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 import csv
-
 import logging
 
 from .models import Symbol, PrecomputedMetrics, OHLCVData
@@ -50,20 +48,35 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
             logger.error(f"Error in get_queryset: {str(e)}")
             return PrecomputedMetrics.objects.none()
 
+    def get_filterset(self, filterset_class):
+        """Return the filterset instance"""
+        kwargs = self.get_filterset_kwargs(filterset_class)
+        return filterset_class(**kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Market Dashboard'
-        context['year_range'] = range(2020, 2027)  # Adjust as needed
+        context['year_range'] = range(2020, 2027)
 
-        # Add filter form to context with current values
-        if self.filterset:
-            context['filter_form'] = self.filterset.form
+        # Ensure filterset is in context
+        if not hasattr(self, 'filterset'):
+            self.filterset = self.get_filterset(self.filterset_class)
+        context['filter'] = self.filterset
 
         return context
 
     def get(self, request, *args, **kwargs):
         try:
-            response = super().get(request, *args, **kwargs)
+            # Ensure filterset is created before calling super
+            self.filterset = self.get_filterset(self.filterset_class)
+            self.object_list = self.filterset.qs
+
+            context = self.get_context_data(
+                filter=self.filterset,
+                object_list=self.object_list
+            )
+
+            response = self.render_to_response(context)
 
             # Check if this is an HTMX request for partial updates
             if request.headers.get('HX-Request'):

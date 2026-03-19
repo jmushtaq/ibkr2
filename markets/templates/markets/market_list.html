@@ -26,7 +26,76 @@
             <div class="collapse" id="filterCollapse">
                 <div class="card-body bg-light">
                     <form method="get" class="form" id="filterForm">
-                        <!-- ... filter fields ... -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                {{ filter.form.search|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.sector|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.industry|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.year_from|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.year_to|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.change_1d_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1d_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1w_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1w_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1m_max|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.change_1y_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.change_1y_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.market_cap_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.market_cap_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.price_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.price_max|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Apply Filters
+                                </button>
+                                <a href="{% url 'markets:market_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-undo"></i> Reset
+                                </a>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
