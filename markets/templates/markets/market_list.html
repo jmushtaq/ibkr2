@@ -138,11 +138,84 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Viewing data as of:</strong> 
+                <span id="currentAsOfDate">{{ selected_date|default:"Latest" }}</span>
+                {% if selected_date %}
+                    <span class="badge bg-secondary ms-2">{{ debug_record_count }} records</span>
+                {% endif %}
+            </div>
+            {% if selected_date %}
+            <a href="{% url 'markets:market_list' %}" class="btn btn-sm btn-outline-info">
+                <i class="fas fa-times"></i> Clear Date Filter
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-chart-bar"></i> {{ title }}
                 </h5>
                 <div class="d-flex gap-2">
+
+
+                    <!-- As Of Date Picker -->
+                    <div class="dropdown me-2">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="asOfDateDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-calendar-alt me-1"></i> 
+                            As of: <span id="selectedDateDisplay">{{ selected_date|default:"Latest" }}</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="asOfDateDropdown" style="min-width: 300px;">
+                            <div class="mb-3">
+                                <label for="datePicker" class="form-label text-dark">Select Date:</label>
+                                <input type="date" class="form-control" id="datePicker" value="{{ selected_date }}" 
+                                    min="{{ available_dates.last|date:'Y-m-d' }}" 
+                                    max="{{ available_dates.first|date:'Y-m-d' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-dark">Quick Select:</label>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="setDateToLatest()">Latest</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="setDateToYesterday()">Yesterday</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="setDateToWeekAgo()">1 Week Ago</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="setDateToMonthAgo()">1 Month Ago</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-dark">Available Dates:</label>
+                                <select class="form-select form-select-sm" id="availableDatesSelect" size="5">
+                                    {% for date in available_dates|slice:":10" %}
+                                        <option value="{{ date|date:'Y-m-d' }}" {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+                                            {{ date|date:'M d, Y' }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-secondary btn-sm" onclick="clearDateFilter()">Clear</button>
+                                <button class="btn btn-primary btn-sm" onclick="applyDateFilter()">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column Selector Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="columnSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-columns me-1"></i> Columns
+                            <span class="badge-column-count" id="visibleColumnCount">0</span>
+                        </button>
+                        <!-- ... rest of column selector ... -->
+                    </div>
+
+
                     <!-- Column Selector Dropdown -->
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="columnSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -685,6 +758,225 @@ function checkForEmptyTable() {
             container.prepend(messageDiv);
         }
     }
+}
+
+// Date picker functionality
+class DatePickerManager {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        this.datePicker = document.getElementById('datePicker');
+        this.selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        this.availableDatesSelect = document.getElementById('availableDatesSelect');
+        
+        // Set up event listeners
+        if (this.datePicker) {
+            this.datePicker.addEventListener('change', () => {
+                this.updateSelectedDateDisplay(this.datePicker.value);
+            });
+        }
+        
+        if (this.availableDatesSelect) {
+            this.availableDatesSelect.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    this.datePicker.value = e.target.value;
+                    this.updateSelectedDateDisplay(e.target.value);
+                }
+            });
+            
+            this.availableDatesSelect.addEventListener('dblclick', () => {
+                this.applyDateFilter();
+            });
+        }
+    }
+    
+    updateSelectedDateDisplay(date) {
+        if (date) {
+            // Format date for display (YYYY-MM-DD to MMM DD, YYYY)
+            const parts = date.split('-');
+            if (parts.length === 3) {
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = monthNames[parseInt(parts[1]) - 1];
+                this.selectedDateDisplay.textContent = `${month} ${parseInt(parts[2])}, ${parts[0]}`;
+            } else {
+                this.selectedDateDisplay.textContent = date;
+            }
+        } else {
+            this.selectedDateDisplay.textContent = 'Latest';
+        }
+    }
+    
+    getDates() {
+        // Get all available dates from the select options
+        const dates = [];
+        if (this.availableDatesSelect) {
+            const options = this.availableDatesSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                dates.push(options[i].value);
+            }
+        }
+        return dates;
+    }
+    
+    setDate(date) {
+        if (this.datePicker) {
+            this.datePicker.value = date;
+            this.updateSelectedDateDisplay(date);
+        }
+    }
+    
+    setDateToLatest() {
+        const dates = this.getDates();
+        if (dates.length > 0) {
+            this.setDate(dates[0]); // First date is latest
+            this.applyDateFilter();
+        }
+    }
+    
+    setDateToYesterday() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        // Find closest available date
+        const dates = this.getDates();
+        const closest = this.findClosestDate(dates, yesterdayStr);
+        if (closest) {
+            this.setDate(closest);
+            this.applyDateFilter();
+        }
+    }
+    
+    setDateToWeekAgo() {
+        const today = new Date();
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const weekAgoStr = weekAgo.toISOString().split('T')[0];
+        
+        // Find closest available date
+        const dates = this.getDates();
+        const closest = this.findClosestDate(dates, weekAgoStr);
+        if (closest) {
+            this.setDate(closest);
+            this.applyDateFilter();
+        }
+    }
+    
+    setDateToMonthAgo() {
+        const today = new Date();
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        const monthAgoStr = monthAgo.toISOString().split('T')[0];
+        
+        // Find closest available date
+        const dates = this.getDates();
+        const closest = this.findClosestDate(dates, monthAgoStr);
+        if (closest) {
+            this.setDate(closest);
+            this.applyDateFilter();
+        }
+    }
+    
+    findClosestDate(dates, targetStr) {
+        if (!dates || dates.length === 0) return null;
+        
+        const target = new Date(targetStr).getTime();
+        
+        // Convert dates to timestamps
+        const dateObjs = dates.map(d => ({
+            date: d,
+            time: new Date(d).getTime()
+        }));
+        
+        // Find closest date (not after target for backtesting)
+        const validDates = dateObjs.filter(d => d.time <= target);
+        if (validDates.length > 0) {
+            // Return the latest date that's not after target
+            validDates.sort((a, b) => b.time - a.time);
+            return validDates[0].date;
+        }
+        
+        // If no dates before target, return the earliest available
+        dateObjs.sort((a, b) => a.time - b.time);
+        return dateObjs[0].date;
+    }
+    
+    applyDateFilter() {
+        if (!this.datePicker) return;
+        
+        const selectedDate = this.datePicker.value;
+        const currentUrl = new URL(window.location.href);
+        
+        if (selectedDate) {
+            currentUrl.searchParams.set('as_of_date', selectedDate);
+        } else {
+            currentUrl.searchParams.delete('as_of_date');
+        }
+        
+        // Preserve other query parameters
+        const sort = currentUrl.searchParams.get('sort');
+        if (sort) {
+            currentUrl.searchParams.set('sort', sort);
+        }
+        
+        // Show loading indicator
+        document.getElementById('columnLoading').style.display = 'block';
+        
+        // Navigate to new URL
+        window.location.href = currentUrl.toString();
+    }
+    
+    clearDateFilter() {
+        if (this.datePicker) {
+            this.datePicker.value = '';
+            this.selectedDateDisplay.textContent = 'Latest';
+        }
+    }
+}
+
+// Initialize date picker
+let datePickerManager = null;
+
+// Add to existing DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing column manager initialization
+    setTimeout(() => {
+        columnManager = new ColumnVisibilityManager();
+    }, 100);
+    
+    // Initialize date picker
+    setTimeout(() => {
+        datePickerManager = new DatePickerManager();
+    }, 200);
+});
+
+// Export functions for date buttons
+function setDateToLatest() {
+    if (datePickerManager) datePickerManager.setDateToLatest();
+}
+
+function setDateToYesterday() {
+    if (datePickerManager) datePickerManager.setDateToYesterday();
+}
+
+function setDateToWeekAgo() {
+    if (datePickerManager) datePickerManager.setDateToWeekAgo();
+}
+
+function setDateToMonthAgo() {
+    if (datePickerManager) datePickerManager.setDateToMonthAgo();
+}
+
+function applyDateFilter() {
+    if (datePickerManager) datePickerManager.applyDateFilter();
+}
+
+function clearDateFilter() {
+    if (datePickerManager) datePickerManager.clearDateFilter();
 }
 
 // Call debug functions after page load

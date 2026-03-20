@@ -27,30 +27,44 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
     paginate_by = 50
 
     def get_queryset(self):
-        """Get queryset with data"""
+        """Get queryset with data for selected date"""
         try:
-            # Get the latest date
-            latest_date = PrecomputedMetrics.objects.filter(
-                frequency='1D'
-            ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+            # Get the selected date from request, or use latest date
+            selected_date = self.request.GET.get('as_of_date')
 
-            print(f"Latest date: {latest_date}")
+            if selected_date:
+                try:
+                    # Parse the selected date
+                    from datetime import datetime
+                    as_of_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                except ValueError:
+                    as_of_date = None
+            else:
+                as_of_date = None
 
-            if not latest_date:
-                print("No latest date found!")
+            if not as_of_date:
+                # Get the latest date if no date selected
+                as_of_date = PrecomputedMetrics.objects.filter(
+                    frequency='1D'
+                ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+
+            print(f"Using as_of_date: {as_of_date}")
+
+            if not as_of_date:
+                print("No date found!")
                 return PrecomputedMetrics.objects.none()
 
-            # Get records for the latest date
+            # Get records for the selected date
             queryset = PrecomputedMetrics.objects.filter(
                 frequency='1D',
-                as_of_date=latest_date
+                as_of_date=as_of_date
             ).select_related(
                 'symbol__sector',
                 'symbol__industry'
             ).order_by('symbol__ticker')
 
             count = queryset.count()
-            print(f"Queryset count: {count}")
+            print(f"Queryset count for {as_of_date}: {count}")
 
             return queryset
 
@@ -60,15 +74,27 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
             traceback.print_exc()
             return PrecomputedMetrics.objects.none()
 
-    def get_filterset(self, filterset_class):
-        """Return the filterset instance"""
-        kwargs = self.get_filterset_kwargs(filterset_class)
-        return filterset_class(**kwargs)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Market Dashboard'
         context['year_range'] = range(2020, 2027)
+
+        # Get all available dates for the date picker
+        available_dates = PrecomputedMetrics.objects.filter(
+            frequency='1D'
+        ).values_list('as_of_date', flat=True).distinct().order_by('-as_of_date')
+
+        context['available_dates'] = available_dates
+
+        # Get current selected date
+        selected_date = self.request.GET.get('as_of_date')
+        if selected_date:
+            context['selected_date'] = selected_date
+        else:
+            # Default to latest date
+            latest_date = available_dates.first()
+            if latest_date:
+                context['selected_date'] = latest_date.strftime('%Y-%m-%d')
 
         # Add debug info
         if hasattr(self, 'object_list'):
@@ -82,31 +108,6 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
                 }
 
         return context
-
-    def get(self, request, *args, **kwargs):
-        try:
-            # Ensure filterset is created before calling super
-            self.filterset = self.get_filterset(self.filterset_class)
-            self.object_list = self.filterset.qs
-
-            print(f"Final object_list count: {self.object_list.count()}")
-
-            context = self.get_context_data(
-                filter=self.filterset,
-                object_list=self.object_list
-            )
-
-            return self.render_to_response(context)
-
-        except Exception as e:
-            print(f"Error in get: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return render(request, 'markets/market_list.html', {
-                'error': f"An error occurred: {str(e)}",
-                'title': 'Market Dashboard',
-                'year_range': range(2020, 2027),
-            })
 
 
 class ChartDataView(FilterView):
@@ -507,4 +508,15 @@ class MinimalTestView(TemplateView):
         context['total_count'] = PrecomputedMetrics.objects.filter(frequency='1D').count()
 
         return context
+
+
+def available_dates_view(request):
+    """API endpoint to get available dates"""
+    dates = PrecomputedMetrics.objects.filter(
+        frequency='1D'
+    ).values_list('as_of_date', flat=True).distinct().order_by('-as_of_date')
+
+    return JsonResponse({
+        'dates': [d.strftime('%Y-%m-%d') for d in dates]
+    })
 

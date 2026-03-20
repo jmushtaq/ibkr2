@@ -17,4 +17,5 @@ urlpatterns = [
     path('api/symbols/', views.SymbolListView.as_view(), name='symbol_list'),
     path('api/indicators/', views.IndicatorDataView.as_view(), name='indicator_data'),
     path('api/indicators/list/', views.AvailableIndicatorsView.as_view(), name='indicator_list'),
+    path('api/available-dates/', views.available_dates_view, name='available_dates'),
 ]
