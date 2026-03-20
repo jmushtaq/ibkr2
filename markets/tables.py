@@ -127,48 +127,6 @@ class SymbolMetricsTable(tables.Table):
         orderable=True,
     )
 
-    # Forward-looking metrics - Max Drop
-    fwd_max_drop_1d = tables.Column(
-        accessor='fwd_max_drop_1d',
-        verbose_name='Fwd Max Drop 1D',
-        orderable=True,
-    )
-
-    fwd_max_drop_1w = tables.Column(
-        accessor='fwd_max_drop_1w',
-        verbose_name='Fwd Max Drop 1W',
-        orderable=True,
-    )
-
-    fwd_max_drop_2w = tables.Column(
-        accessor='fwd_max_drop_2w',
-        verbose_name='Fwd Max Drop 2W',
-        orderable=True,
-    )
-
-    fwd_max_drop_1m = tables.Column(
-        accessor='fwd_max_drop_1m',
-        verbose_name='Fwd Max Drop 1M',
-        orderable=True,
-    )
-
-    fwd_max_drop_3m = tables.Column(
-        accessor='fwd_max_drop_3m',
-        verbose_name='Fwd Max Drop 3M',
-        orderable=True,
-    )
-
-    fwd_max_drop_6m = tables.Column(
-        accessor='fwd_max_drop_6m',
-        verbose_name='Fwd Max Drop 6M',
-        orderable=True,
-    )
-
-    fwd_max_drop_1y = tables.Column(
-        accessor='fwd_max_drop_1y',
-        verbose_name='Fwd Max Drop 1Y',
-        orderable=True,
-    )
 
     # Additional metrics
     fwd_volatility_1m = tables.Column(
@@ -367,61 +325,6 @@ class SymbolMetricsTable(tables.Table):
         except:
             return str(value)
 
-    def render_fwd_max_drop_1d(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_1w(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_2w(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_1m(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_3m(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_6m(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
-
-    def render_fwd_max_drop_1y(self, value, record):
-        if value is None:
-            return '-'
-        try:
-            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
-        except:
-            return str(value)
 
     def render_fwd_volatility_1m(self, value, record):
         if value is None:
@@ -482,8 +385,6 @@ class SymbolMetricsTable(tables.Table):
             'change_1m', 'change_3m', 'change_6m', 'change_1y',
             'fwd_max_rise_1d', 'fwd_max_rise_1w', 'fwd_max_rise_2w',
             'fwd_max_rise_1m', 'fwd_max_rise_3m', 'fwd_max_rise_6m', 'fwd_max_rise_1y',
-            'fwd_max_drop_1d', 'fwd_max_drop_1w', 'fwd_max_drop_2w',
-            'fwd_max_drop_1m', 'fwd_max_drop_3m', 'fwd_max_drop_6m', 'fwd_max_drop_1y',
             'fwd_volatility_1m', 'fwd_volatility_3m', 'fwd_volatility_6m',
             'fwd_sharpe_ratio', 'fwd_max_drawdown', 'fwd_drawdown_duration',
         ]

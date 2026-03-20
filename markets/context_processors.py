@@ -36,15 +36,6 @@ def dashboard_settings(request):
             {'id': 'fwd_max_rise_6m', 'name': 'Forward Max Rise 6M', 'category': 'Forward Max Rise'},
             {'id': 'fwd_max_rise_1y', 'name': 'Forward Max Rise 1Y', 'category': 'Forward Max Rise'},
 
-            # Forward Max Drop
-            {'id': 'fwd_max_drop_1d', 'name': 'Forward Max Drop 1D', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_1w', 'name': 'Forward Max Drop 1W', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_2w', 'name': 'Forward Max Drop 2W', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_1m', 'name': 'Forward Max Drop 1M', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_3m', 'name': 'Forward Max Drop 3M', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_6m', 'name': 'Forward Max Drop 6M', 'category': 'Forward Max Drop'},
-            {'id': 'fwd_max_drop_1y', 'name': 'Forward Max Drop 1Y', 'category': 'Forward Max Drop'},
-
             # Risk Metrics
             {'id': 'fwd_volatility_1m', 'name': 'Volatility 1M', 'category': 'Risk Metrics'},
             {'id': 'fwd_volatility_3m', 'name': 'Volatility 3M', 'category': 'Risk Metrics'},

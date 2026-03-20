@@ -140,25 +140,12 @@ class PrecomputedMetrics(models.Model):
 
     # Forward-looking metrics
     fwd_max_rise_1d = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 1 day")
-    fwd_max_drop_1d = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 1 day")
-
     fwd_max_rise_1w = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 1 week")
-    fwd_max_drop_1w = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 1 week")
-
     fwd_max_rise_2w = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 2 weeks")
-    fwd_max_drop_2w = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 2 weeks")
-
     fwd_max_rise_1m = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 1 month")
-    fwd_max_drop_1m = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 1 month")
-
     fwd_max_rise_3m = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 3 months")
-    fwd_max_drop_3m = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 3 months")
-
     fwd_max_rise_6m = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 6 months")
-    fwd_max_drop_6m = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 6 months")
-
     fwd_max_rise_1y = models.FloatField(null=True, blank=True, help_text="Maximum % rise in next 1 year")
-    fwd_max_drop_1y = models.FloatField(null=True, blank=True, help_text="Maximum % drop in next 1 year")
 
     # Additional useful metrics
     fwd_volatility_1m = models.FloatField(null=True, blank=True, help_text="Volatility (std dev of returns) over next 1 month")

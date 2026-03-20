@@ -325,19 +325,12 @@ class Command(BaseCommand):
 
                 # Forward-looking
                 fwd_max_rise_1d=forward_metrics.get('fwd_max_rise_1d'),
-                fwd_max_drop_1d=forward_metrics.get('fwd_max_drop_1d'),
                 fwd_max_rise_1w=forward_metrics.get('fwd_max_rise_1w'),
-                fwd_max_drop_1w=forward_metrics.get('fwd_max_drop_1w'),
                 fwd_max_rise_2w=forward_metrics.get('fwd_max_rise_2w'),
-                fwd_max_drop_2w=forward_metrics.get('fwd_max_drop_2w'),
                 fwd_max_rise_1m=forward_metrics.get('fwd_max_rise_1m'),
-                fwd_max_drop_1m=forward_metrics.get('fwd_max_drop_1m'),
                 fwd_max_rise_3m=forward_metrics.get('fwd_max_rise_3m'),
-                fwd_max_drop_3m=forward_metrics.get('fwd_max_drop_3m'),
                 fwd_max_rise_6m=forward_metrics.get('fwd_max_rise_6m'),
-                fwd_max_drop_6m=forward_metrics.get('fwd_max_drop_6m'),
                 fwd_max_rise_1y=forward_metrics.get('fwd_max_rise_1y'),
-                fwd_max_drop_1y=forward_metrics.get('fwd_max_drop_1y'),
                 fwd_volatility_1m=forward_metrics.get('fwd_volatility_1m'),
                 fwd_volatility_3m=forward_metrics.get('fwd_volatility_3m'),
                 fwd_volatility_6m=forward_metrics.get('fwd_volatility_6m'),
@@ -384,7 +377,6 @@ class Command(BaseCommand):
             # No future data available
             for period_key in forward_periods.keys():
                 forward_metrics[f'fwd_max_rise_{period_key}'] = None
-                forward_metrics[f'fwd_max_drop_{period_key}'] = None
             forward_metrics['fwd_volatility_1m'] = None
             forward_metrics['fwd_volatility_3m'] = None
             forward_metrics['fwd_volatility_6m'] = None
@@ -401,7 +393,7 @@ class Command(BaseCommand):
             window_data = future_data[future_data.index <= target_date]
 
             if len(window_data) > 0:
-                # Calculate max rise and max drop
+                # Calculate max rise
                 future_prices = window_data['close'].values
                 future_high = np.max(future_prices)
                 future_low = np.min(future_prices)
@@ -410,12 +402,8 @@ class Command(BaseCommand):
                 max_rise_pct = ((future_high - current_price) / current_price) * 100
                 forward_metrics[f'fwd_max_rise_{period_key}'] = round(max_rise_pct, 2)
 
-                # Max drop (lowest price relative to current)
-                max_drop_pct = ((future_low - current_price) / current_price) * 100
-                forward_metrics[f'fwd_max_drop_{period_key}'] = round(max_drop_pct, 2)
             else:
                 forward_metrics[f'fwd_max_rise_{period_key}'] = None
-                forward_metrics[f'fwd_max_drop_{period_key}'] = None
 
         # Calculate volatility for different periods
         for period, days in [('1m', 30), ('3m', 90), ('6m', 180)]:
@@ -578,7 +566,6 @@ class Command(BaseCommand):
 
             self.stdout.write("\n  Forward 1Y metrics:")
             self.stdout.write(f"    Max rise: {forward.get('fwd_max_rise_1y')}%")
-            self.stdout.write(f"    Max drop: {forward.get('fwd_max_drop_1y')}%")
             self.stdout.write(f"    Max drawdown: {forward.get('fwd_max_drawdown')}%")
             self.stdout.write(f"    Drawdown duration: {forward.get('fwd_drawdown_duration')} days")
             self.stdout.write(f"    Sharpe ratio: {forward.get('fwd_sharpe_ratio')}")
