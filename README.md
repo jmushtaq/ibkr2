@@ -58,6 +58,16 @@ python manage.py load_ohlcv_data --frequency 1D --year 2026 --symbol FMCC --dele
 ## load without deleting (will update existing)
 python manage.py load_ohlcv_data --frequency 1D --year 2026 --data-dir ../ibkr/data/
 
+# Adding as_o_date(s)
+## Load data and calculate metrics for ALL dates (for backtesting)
+python manage.py load_ohlcv_data --frequency 1D --year 2026 --all-dates
+
+## Recalculate metrics for existing data
+python manage.py load_ohlcv_data --recalculate-metrics --frequency 1D
+
+## Recalculate metrics for a specific symbol
+python manage.py load_ohlcv_data --recalculate-metrics --frequency 1D --symbol AAPL
+
 
 # 7. Install and start Redis (for caching)
 # Ubuntu/Debian:

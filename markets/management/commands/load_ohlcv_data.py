@@ -1,12 +1,12 @@
 import os
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from markets.models import Symbol, OHLCVData, PrecomputedMetrics
+from markets.models import Symbol, OHLCVData
 from django.conf import settings
 import logging
 
@@ -18,24 +18,44 @@ class Command(BaseCommand):
         python manage.py load_ohlcv_data --frequency 1D --year 2026 --data-dir ../ibkr/data/
         python manage.py load_ohlcv_data --frequency 1D --year 2026 --symbol FMCC --data-dir ../ibkr/data/
         python manage.py load_ohlcv_data --frequency 1D --year 2026 --delete-existing --data-dir ../ibkr/data/
+        python manage.py load_ohlcv_data --frequency 1D --all-years --data-dir ../ibkr/data/  # Load all years
+        python manage.py load_ohlcv_data --frequency 1D --all-years --delete-existing --data-dir ../ibkr/data/
+
+    Note: This command only loads OHLCV data. After loading, run:
+        python manage.py compute_metrics --frequency 1D --all-symbols
     '''
-    help = 'Load OHLCV data from CSV files into the database'
+    help = 'Load OHLCV data from CSV files into the database (NO metrics calculation)'
 
     def add_arguments(self, parser):
         parser.add_argument('--frequency', type=str, help='Frequency to load (1min, 5min, 15min, 1H, 4H, 1D)')
-        parser.add_argument('--year', type=int, help='Year to load')
+        parser.add_argument('--year', type=int, help='Year to load (use --all-years to load all)')
+        parser.add_argument('--all-years', action='store_true', help='Load all available years')
         parser.add_argument('--symbol', type=str, help='Specific symbol to load')
         parser.add_argument('--batch-size', type=int, default=100, help='Batch size for processing')
         parser.add_argument('--data-dir', type=str, help='Override data directory')
-        parser.add_argument('--delete-existing', action='store_true', help='Delete existing records before loading')
+        parser.add_argument('--delete-existing', action='store_true',
+                          help='Delete existing records before loading')
+        parser.add_argument('--skip-existing', action='store_true',
+                          help='Skip files that already exist in database')
 
     def handle(self, *args, **options):
         frequency = options.get('frequency')
         year = options.get('year')
+        all_years = options.get('all_years')
         specific_symbol = options.get('symbol')
         batch_size = options.get('batch_size')
         data_dir_override = options.get('data_dir')
         delete_existing = options.get('delete_existing')
+        skip_existing = options.get('skip_existing')
+
+        # Validate arguments
+        if not frequency:
+            self.stdout.write(self.style.ERROR("Please specify --frequency"))
+            return
+
+        if not year and not all_years:
+            self.stdout.write(self.style.ERROR("Please specify either --year or --all-years"))
+            return
 
         # Get data directory
         if data_dir_override:
@@ -49,124 +69,143 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Data directory not found: {data_dir}"))
             return
 
-        if frequency:
-            frequencies = [frequency]
-        else:
-            frequencies = ['1min', '5min', '15min', '1H', '4H', '1D']
+        # Determine years to process
+        if all_years:
+            freq_path = data_dir / frequency
+            if not freq_path.exists():
+                self.stdout.write(self.style.ERROR(f"Frequency directory not found: {freq_path}"))
+                return
 
-        if year:
+            years = [int(d.name) for d in freq_path.iterdir() if d.is_dir() and d.name.isdigit()]
+            years = sorted(years)
+            self.stdout.write(f"Found years: {years}")
+        else:
             years = [year]
-        else:
-            # Get all available years from directory structure
-            years = []
-            for freq in frequencies:
-                freq_path = data_dir / freq
-                if freq_path.exists():
-                    years.extend([int(d.name) for d in freq_path.iterdir() if d.is_dir() and d.name.isdigit()])
-            years = sorted(set(years))
 
-        if not years:
-            self.stdout.write(self.style.WARNING("No years found to process"))
-            return
-
-        self.stdout.write(f"Processing frequencies: {frequencies}")
-        self.stdout.write(f"Processing years: {years}")
+        self.stdout.write(f"\n{'='*60}")
+        self.stdout.write(f"LOADING OHLCV DATA FOR {frequency}")
+        self.stdout.write(f"{'='*60}")
+        self.stdout.write(f"Years to process: {years}")
+        if specific_symbol:
+            self.stdout.write(f"Symbol filter: {specific_symbol}")
+        if delete_existing:
+            self.stdout.write(self.style.WARNING("Will delete existing records!"))
+        if skip_existing:
+            self.stdout.write(self.style.WARNING("Will skip existing records!"))
+        self.stdout.write(f"{'='*60}\n")
 
         # Delete existing records if requested
         if delete_existing:
-            self.delete_existing_records(frequencies, years, specific_symbol)
-            self.stdout.write(self.style.WARNING("Existing records deleted"))
+            self.delete_existing_records(frequency, years, specific_symbol)
 
         total_loaded = 0
         total_errors = 0
         total_skipped = 0
+        total_files_processed = 0
 
-        for freq in frequencies:
-            for yr in years:
-                self.stdout.write(f"\n{'='*60}")
-                self.stdout.write(f"Processing {freq} - {yr}...")
-                self.stdout.write('='*60)
+        for yr in years:
+            self.stdout.write(f"\n{'─'*40}")
+            self.stdout.write(f"Processing year {yr}...")
+            self.stdout.write(f"{'─'*40}")
 
-                freq_year_path = data_dir / freq / str(yr)
-                if not freq_year_path.exists():
-                    self.stdout.write(f"  Directory not found: {freq_year_path}")
-                    continue
+            freq_year_path = data_dir / frequency / str(yr)
+            if not freq_year_path.exists():
+                self.stdout.write(self.style.WARNING(f"  Directory not found: {freq_year_path}"))
+                continue
 
-                # Get all CSV files
-                csv_files = list(freq_year_path.glob("*.csv"))
-                csv_files.extend(freq_year_path.glob("*.CSV"))  # Also catch uppercase extensions
+            # Get all CSV files
+            csv_files = list(freq_year_path.glob("*.csv"))
+            csv_files.extend(freq_year_path.glob("*.CSV"))  # Also catch uppercase extensions
 
-                if specific_symbol:
-                    csv_files = [f for f in csv_files if f.stem.split('_')[0].upper() == specific_symbol.upper()]
+            if specific_symbol:
+                csv_files = [f for f in csv_files if f.stem.split('_')[0].upper() == specific_symbol.upper()]
 
-                if not csv_files:
-                    self.stdout.write(f"  No CSV files found in {freq_year_path}")
-                    continue
+            if not csv_files:
+                self.stdout.write(self.style.WARNING(f"  No CSV files found in {freq_year_path}"))
+                continue
 
-                self.stdout.write(f"  Found {len(csv_files)} files to process")
+            self.stdout.write(f"  Found {len(csv_files)} files to process")
 
-                for i, csv_file in enumerate(csv_files, 1):
-                    try:
-                        # Extract symbol name from filename (assumes format: SYMBOL_YYYY.csv)
-                        symbol_name = csv_file.stem.split('_')[0].upper()
+            for i, csv_file in enumerate(csv_files, 1):
+                total_files_processed += 1
+                try:
+                    # Extract symbol name from filename (assumes format: SYMBOL_YYYY.csv)
+                    symbol_name = csv_file.stem.split('_')[0].upper()
 
-                        self.stdout.write(f"\n  [{i}/{len(csv_files)}] Processing: {symbol_name}")
+                    # Progress indicator
+                    progress_msg = f"  [{i}/{len(csv_files)}] {symbol_name}"
+                    self.stdout.write(progress_msg, ending='\r')
+                    self.stdout.flush()
 
-                        # Get or create symbol
-                        symbol, created = Symbol.objects.get_or_create(
-                            ticker=symbol_name,
-                            defaults={
-                                'name': symbol_name,
-                                'is_active': True
-                            }
-                        )
+                    # Check if this symbol/year already exists
+                    if skip_existing:
+                        symbol = Symbol.objects.filter(ticker=symbol_name).first()
+                        if symbol:
+                            exists = OHLCVData.objects.filter(
+                                symbol=symbol,
+                                frequency=frequency,
+                                year=yr
+                            ).exists()
+                            if exists:
+                                total_skipped += 1
+                                continue
 
-                        if created:
-                            self.stdout.write(f"    Created new symbol: {symbol_name}")
+                    # Get or create symbol
+                    symbol, created = Symbol.objects.get_or_create(
+                        ticker=symbol_name,
+                        defaults={
+                            'name': symbol_name,
+                            'is_active': True
+                        }
+                    )
 
-                        # Load and process CSV with proper date handling
-                        result = self.process_csv_file(csv_file, symbol, freq, yr)
+                    # Load and process CSV
+                    result = self.process_csv_file(csv_file, symbol, frequency, yr)
 
-                        if result['success']:
-                            total_loaded += 1
-                            self.stdout.write(self.style.SUCCESS(
-                                f"    ✓ Loaded {result['records']} records for {symbol_name}"
-                            ))
-                            if result['warnings']:
-                                for warning in result['warnings']:
-                                    self.stdout.write(self.style.WARNING(f"      ⚠ {warning}"))
-                        else:
-                            total_errors += 1
-                            self.stdout.write(self.style.ERROR(
-                                f"    ✗ Failed to load {symbol_name}: {result['error']}"
-                            ))
-
-                        if total_loaded % batch_size == 0 and total_loaded > 0:
-                            self.stdout.write(self.style.SUCCESS(
-                                f"\n  Progress: Loaded {total_loaded} files so far..."
-                            ))
-
-                    except Exception as e:
-                        self.stdout.write(self.style.ERROR(
-                            f"    ✗ Unexpected error processing {csv_file.name}: {str(e)}"
+                    if result['success']:
+                        total_loaded += 1
+                        # Clear the progress line and show success
+                        self.stdout.write(' ' * 80, ending='\r')
+                        self.stdout.write(self.style.SUCCESS(
+                            f"  ✓ {symbol_name}: {result['records']} records ({result['date_range']})"
                         ))
-                        logger.error(f"Error loading {csv_file}: {str(e)}", exc_info=True)
+                    else:
                         total_errors += 1
+                        self.stdout.write(' ' * 80, ending='\r')
+                        self.stdout.write(self.style.ERROR(
+                            f"  ✗ {symbol_name}: {result['error']}"
+                        ))
+
+                    if total_loaded % batch_size == 0 and total_loaded > 0:
+                        self.stdout.write(self.style.SUCCESS(
+                            f"\n  Progress: Loaded {total_loaded} files so far..."
+                        ))
+
+                except Exception as e:
+                    total_errors += 1
+                    self.stdout.write(' ' * 80, ending='\r')
+                    self.stdout.write(self.style.ERROR(
+                        f"  ✗ Unexpected error processing {csv_file.name}: {str(e)}"
+                    ))
+                    logger.error(f"Error loading {csv_file}: {str(e)}", exc_info=True)
 
         self.stdout.write(self.style.SUCCESS(
             f"\n{'='*60}\n"
             f"LOADING COMPLETE!\n"
             f"{'='*60}\n"
-            f"Successfully loaded: {total_loaded} files\n"
-            f"Errors encountered: {total_errors} files\n"
-            f"Skipped: {total_skipped} files\n"
-            f"{'='*60}"
+            f"Files processed: {total_files_processed}\n"
+            f"Successfully loaded: {total_loaded}\n"
+            f"Skipped (already existed): {total_skipped}\n"
+            f"Errors encountered: {total_errors}\n"
+            f"{'='*60}\n\n"
+            f"Next step: Run compute_metrics to calculate returns:\n"
+            f"  python manage.py compute_metrics --frequency {frequency} --all-symbols"
         ))
 
-    def delete_existing_records(self, frequencies, years, specific_symbol):
+    def delete_existing_records(self, frequency, years, specific_symbol):
         """Delete existing records for the given parameters"""
         queryset = OHLCVData.objects.filter(
-            frequency__in=frequencies,
+            frequency=frequency,
             year__in=years
         )
 
@@ -174,25 +213,26 @@ class Command(BaseCommand):
             queryset = queryset.filter(symbol__ticker=specific_symbol)
 
         count = queryset.count()
-        queryset.delete()
 
-        # Also delete related metrics
-        metrics_queryset = PrecomputedMetrics.objects.filter(
-            frequency__in=frequencies
-        )
-        if specific_symbol:
-            metrics_queryset = metrics_queryset.filter(symbol__ticker=specific_symbol)
-        metrics_queryset.delete()
+        if count > 0:
+            queryset.delete()
+            self.stdout.write(self.style.WARNING(
+                f"  Deleted {count} existing OHLCV records"
+            ))
 
-        self.stdout.write(f"  Deleted {count} existing OHLCV records")
+            # Note: We don't delete metrics here since they'll be recomputed separately
+            self.stdout.write(self.style.WARNING(
+                f"  Note: PrecomputedMetrics were NOT deleted. Run compute_metrics with --delete-existing if needed."
+            ))
 
     def process_csv_file(self, csv_file, symbol, frequency, year):
-        """Process a single CSV file and load into database"""
+        """Process a single CSV file and load into database (NO metrics calculation)"""
         result = {
             'success': False,
             'records': 0,
             'warnings': [],
-            'error': None
+            'error': None,
+            'date_range': None
         }
 
         try:
@@ -293,9 +333,9 @@ class Command(BaseCommand):
                     f"Date range {first_date} to {last_date} spans outside year {year}"
                 )
 
-            # Create or update OHLCV data
+            # Create or update OHLCV data (NO metrics calculation)
             with transaction.atomic():
-                ohlcv_data, created = OHLCVData.objects.update_or_create(
+                OHLCVData.objects.update_or_create(
                     symbol=symbol,
                     frequency=frequency,
                     year=year,
@@ -307,14 +347,8 @@ class Command(BaseCommand):
                     }
                 )
 
-                # Precompute metrics for the latest date
-                self.precompute_metrics(symbol, frequency, df)
-
                 result['success'] = True
                 result['records'] = len(df)
-                result['created'] = created
-
-                # Add date range to result
                 result['date_range'] = f"{first_date} to {last_date}"
 
         except Exception as e:
@@ -445,74 +479,3 @@ class Command(BaseCommand):
         df = df[df['dates'].notna()]
 
         return df
-
-    def precompute_metrics(self, symbol, frequency, df):
-        """Precompute percentage changes for the latest date"""
-        if len(df) == 0:
-            return
-
-        try:
-            # Get latest date and price
-            latest_idx = df['dates'].idxmax()
-            latest_date = df.loc[latest_idx, 'dates']
-            latest_price = float(df.loc[latest_idx, 'close'])
-
-            # Create a Series with dates as index for easier lookup
-            df_with_index = df.set_index('dates').sort_index()
-
-            # Calculate changes for different periods
-            changes = {}
-
-            # Periods in days
-            periods = {
-                'change_1d': 1,
-                'change_1w': 7,
-                'change_2w': 14,
-                'change_1m': 30,
-                'change_3m': 90,
-                'change_6m': 180,
-                'change_1y': 365,
-            }
-
-            for field, days in periods.items():
-                try:
-                    target_date = latest_date - pd.Timedelta(days=days)
-
-                    # Find the closest date
-                    closest_idx = df_with_index.index.get_indexer([target_date], method='nearest')[0]
-
-                    if closest_idx >= 0 and closest_idx < len(df_with_index):
-                        past_price = float(df_with_index.iloc[closest_idx]['close'])
-
-                        if past_price and past_price > 0:
-                            pct_change = ((latest_price - past_price) / past_price) * 100
-                            changes[field] = round(pct_change, 2)
-                        else:
-                            changes[field] = None
-                    else:
-                        changes[field] = None
-
-                except Exception as e:
-                    logger.warning(f"Error calculating {field} for {symbol.ticker}: {str(e)}")
-                    changes[field] = None
-
-            # Create or update metrics
-            PrecomputedMetrics.objects.update_or_create(
-                symbol=symbol,
-                frequency=frequency,
-                as_of_date=latest_date.date(),
-                defaults={
-                    'current_price': latest_price,
-                    'change_1d': changes.get('change_1d'),
-                    'change_1w': changes.get('change_1w'),
-                    'change_2w': changes.get('change_2w'),
-                    'change_1m': changes.get('change_1m'),
-                    'change_3m': changes.get('change_3m'),
-                    'change_6m': changes.get('change_6m'),
-                    'change_1y': changes.get('change_1y'),
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error precomputing metrics for {symbol.ticker}: {str(e)}", exc_info=True)
-
