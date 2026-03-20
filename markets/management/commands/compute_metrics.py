@@ -188,6 +188,10 @@ class Command(BaseCommand):
                 if symbols_processed == 0:  # Only for first symbol
                     self.diagnose_data(symbol, combined_df)
 
+                if symbols_processed == 0:  # Only for first symbol
+                    self.diagnose_data(symbol, combined_df)
+                    self.diagnose_forward_metrics(symbol, combined_df)  # Add this line
+
                 total_days = len(combined_df)
                 self.stdout.write(f"  Total historical data: {total_days} days")
                 self.stdout.write(f"  Date range: {combined_df.index[0].date()} to {combined_df.index[-1].date()}")
@@ -258,8 +262,8 @@ class Command(BaseCommand):
     def compute_metrics_for_symbol(self, symbol, frequency, df, batch_size):
         """Compute metrics for all dates in the dataframe using complete history"""
 
-        # Define periods in days
-        periods = {
+        # Define periods in days for backward-looking metrics
+        backward_periods = {
             'change_1d': 1,
             'change_1w': 7,
             'change_2w': 14,
@@ -278,15 +282,11 @@ class Command(BaseCommand):
         for idx, (current_date, row) in enumerate(df.iterrows()):
             current_price = float(row['close'])
 
-            # Calculate changes for this date using ALL historical data
-            changes = {}
-
-            for field, days in periods.items():
+            # Calculate backward-looking changes (historical)
+            backward_changes = {}
+            for field, days in backward_periods.items():
                 try:
                     target_date = current_date - pd.Timedelta(days=days)
-
-                    # Find the closest date that's not after target_date
-                    # Using all available historical data, not just current year
                     available_dates = df.index[df.index <= target_date]
 
                     if len(available_dates) > 0:
@@ -295,33 +295,58 @@ class Command(BaseCommand):
 
                         if past_price and past_price > 0:
                             pct_change = ((current_price - past_price) / past_price) * 100
-                            changes[field] = round(pct_change, 2)
+                            backward_changes[field] = round(pct_change, 2)
                         else:
-                            changes[field] = None
+                            backward_changes[field] = None
                     else:
-                        # Not enough historical data
-                        changes[field] = None
-
+                        backward_changes[field] = None
                 except Exception as e:
                     logger.warning(f"Error calculating {field} for {symbol.ticker} on {current_date}: {str(e)}")
-                    changes[field] = None
+                    backward_changes[field] = None
+
+            # Calculate forward-looking metrics
+            forward_metrics = self.calculate_forward_metrics(df, idx, current_date, current_price)
 
             # Create metrics object
-            metrics_batch.append(
-                PrecomputedMetrics(
-                    symbol=symbol,
-                    frequency=frequency,
-                    as_of_date=current_date.date(),  # Convert to date (timezone-naive)
-                    current_price=current_price,
-                    change_1d=changes.get('change_1d'),
-                    change_1w=changes.get('change_1w'),
-                    change_2w=changes.get('change_2w'),
-                    change_1m=changes.get('change_1m'),
-                    change_3m=changes.get('change_3m'),
-                    change_6m=changes.get('change_6m'),
-                    change_1y=changes.get('change_1y'),
-                )
+            metrics_obj = PrecomputedMetrics(
+                symbol=symbol,
+                frequency=frequency,
+                as_of_date=current_date.date(),
+                current_price=current_price,
+
+                # Backward-looking
+                change_1d=backward_changes.get('change_1d'),
+                change_1w=backward_changes.get('change_1w'),
+                change_2w=backward_changes.get('change_2w'),
+                change_1m=backward_changes.get('change_1m'),
+                change_3m=backward_changes.get('change_3m'),
+                change_6m=backward_changes.get('change_6m'),
+                change_1y=backward_changes.get('change_1y'),
+
+                # Forward-looking
+                fwd_max_rise_1d=forward_metrics.get('fwd_max_rise_1d'),
+                fwd_max_drop_1d=forward_metrics.get('fwd_max_drop_1d'),
+                fwd_max_rise_1w=forward_metrics.get('fwd_max_rise_1w'),
+                fwd_max_drop_1w=forward_metrics.get('fwd_max_drop_1w'),
+                fwd_max_rise_2w=forward_metrics.get('fwd_max_rise_2w'),
+                fwd_max_drop_2w=forward_metrics.get('fwd_max_drop_2w'),
+                fwd_max_rise_1m=forward_metrics.get('fwd_max_rise_1m'),
+                fwd_max_drop_1m=forward_metrics.get('fwd_max_drop_1m'),
+                fwd_max_rise_3m=forward_metrics.get('fwd_max_rise_3m'),
+                fwd_max_drop_3m=forward_metrics.get('fwd_max_drop_3m'),
+                fwd_max_rise_6m=forward_metrics.get('fwd_max_rise_6m'),
+                fwd_max_drop_6m=forward_metrics.get('fwd_max_drop_6m'),
+                fwd_max_rise_1y=forward_metrics.get('fwd_max_rise_1y'),
+                fwd_max_drop_1y=forward_metrics.get('fwd_max_drop_1y'),
+                fwd_volatility_1m=forward_metrics.get('fwd_volatility_1m'),
+                fwd_volatility_3m=forward_metrics.get('fwd_volatility_3m'),
+                fwd_volatility_6m=forward_metrics.get('fwd_volatility_6m'),
+                fwd_sharpe_ratio=forward_metrics.get('fwd_sharpe_ratio'),
+                fwd_max_drawdown=forward_metrics.get('fwd_max_drawdown'),
+                fwd_drawdown_duration=forward_metrics.get('fwd_drawdown_duration'),
             )
+
+            metrics_batch.append(metrics_obj)
 
             # Bulk create in batches
             if len(metrics_batch) >= batch_size or idx == total_dates - 1:
@@ -336,6 +361,135 @@ class Command(BaseCommand):
                     self.stdout.write(f"    Progress: {idx + 1}/{total_dates} dates processed")
 
         return total_created
+
+    def calculate_forward_metrics(self, df, current_idx, current_date, current_price):
+        """Calculate forward-looking metrics for a specific date"""
+        forward_metrics = {}
+
+        # Define periods in days for forward-looking metrics
+        forward_periods = {
+            '1d': 1,
+            '1w': 7,
+            '2w': 14,
+            '1m': 30,
+            '3m': 90,
+            '6m': 180,
+            '1y': 365,
+        }
+
+        # Get future data
+        future_data = df.iloc[current_idx+1:] if current_idx < len(df) - 1 else pd.DataFrame()
+
+        if len(future_data) == 0:
+            # No future data available
+            for period_key in forward_periods.keys():
+                forward_metrics[f'fwd_max_rise_{period_key}'] = None
+                forward_metrics[f'fwd_max_drop_{period_key}'] = None
+            forward_metrics['fwd_volatility_1m'] = None
+            forward_metrics['fwd_volatility_3m'] = None
+            forward_metrics['fwd_volatility_6m'] = None
+            forward_metrics['fwd_sharpe_ratio'] = None
+            forward_metrics['fwd_max_drawdown'] = None
+            forward_metrics['fwd_drawdown_duration'] = None
+            return forward_metrics
+
+        # Calculate metrics for each forward period
+        for period_key, days in forward_periods.items():
+            target_date = current_date + pd.Timedelta(days=days)
+
+            # Get data within the forward window
+            window_data = future_data[future_data.index <= target_date]
+
+            if len(window_data) > 0:
+                # Calculate max rise and max drop
+                future_prices = window_data['close'].values
+                future_high = np.max(future_prices)
+                future_low = np.min(future_prices)
+
+                # Max rise (highest price relative to current)
+                max_rise_pct = ((future_high - current_price) / current_price) * 100
+                forward_metrics[f'fwd_max_rise_{period_key}'] = round(max_rise_pct, 2)
+
+                # Max drop (lowest price relative to current)
+                max_drop_pct = ((future_low - current_price) / current_price) * 100
+                forward_metrics[f'fwd_max_drop_{period_key}'] = round(max_drop_pct, 2)
+            else:
+                forward_metrics[f'fwd_max_rise_{period_key}'] = None
+                forward_metrics[f'fwd_max_drop_{period_key}'] = None
+
+        # Calculate volatility for different periods
+        for period, days in [('1m', 30), ('3m', 90), ('6m', 180)]:
+            target_date = current_date + pd.Timedelta(days=days)
+            window_data = future_data[future_data.index <= target_date]
+
+            if len(window_data) >= 5:  # Need at least 5 data points for meaningful volatility
+                # Calculate daily returns
+                daily_returns = window_data['close'].pct_change().dropna()
+                if len(daily_returns) > 0:
+                    volatility = daily_returns.std() * np.sqrt(252) * 100  # Annualized volatility %
+                    forward_metrics[f'fwd_volatility_{period}'] = round(volatility, 2)
+                else:
+                    forward_metrics[f'fwd_volatility_{period}'] = None
+            else:
+                forward_metrics[f'fwd_volatility_{period}'] = None
+
+        # Calculate forward Sharpe ratio (1 year)
+        target_date_1y = current_date + pd.Timedelta(days=365)
+        year_data = future_data[future_data.index <= target_date_1y]
+
+        if len(year_data) >= 20:  # Need enough data points
+            daily_returns = year_data['close'].pct_change().dropna()
+            if len(daily_returns) > 0:
+                avg_daily_return = daily_returns.mean()
+                std_daily_return = daily_returns.std()
+                risk_free_rate = 0.02  # Assume 2% annual risk-free rate
+                daily_rf = (1 + risk_free_rate) ** (1/252) - 1
+
+                if std_daily_return > 0:
+                    sharpe = np.sqrt(252) * (avg_daily_return - daily_rf) / std_daily_return
+                    forward_metrics['fwd_sharpe_ratio'] = round(sharpe, 2)
+                else:
+                    forward_metrics['fwd_sharpe_ratio'] = None
+            else:
+                forward_metrics['fwd_sharpe_ratio'] = None
+        else:
+            forward_metrics['fwd_sharpe_ratio'] = None
+
+        # Calculate maximum drawdown over next year
+        if len(year_data) > 0:
+            # Calculate cumulative returns
+            prices = year_data['close'].values
+            peak = prices[0]
+            max_drawdown = 0
+            drawdown_start = None
+            current_drawdown_start = None
+            max_drawdown_duration = 0
+            current_drawdown_duration = 0
+
+            for i, price in enumerate(prices):
+                if price > peak:
+                    peak = price
+                    current_drawdown_start = None
+                    current_drawdown_duration = 0
+                else:
+                    drawdown = ((price - peak) / peak) * 100
+                    max_drawdown = min(max_drawdown, drawdown)
+
+                    if current_drawdown_start is None:
+                        current_drawdown_start = i
+                        current_drawdown_duration = 1
+                    else:
+                        current_drawdown_duration += 1
+
+                    max_drawdown_duration = max(max_drawdown_duration, current_drawdown_duration)
+
+            forward_metrics['fwd_max_drawdown'] = round(max_drawdown, 2) if max_drawdown < 0 else 0
+            forward_metrics['fwd_drawdown_duration'] = max_drawdown_duration
+        else:
+            forward_metrics['fwd_max_drawdown'] = None
+            forward_metrics['fwd_drawdown_duration'] = None
+
+        return forward_metrics
 
     def diagnose_data(self, symbol, df):
         """Diagnose data continuity for a symbol"""
@@ -399,6 +553,42 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"  No data found for 1Y ago"))
         else:
             self.stdout.write(self.style.WARNING(f"  Test date 2026-01-30 NOT found in data"))
+
+        self.stdout.write("  " + "="*50)
+
+
+    def diagnose_forward_metrics(self, symbol, df):
+        """Diagnose forward metrics for a symbol"""
+        self.stdout.write("\n  " + "="*50)
+        self.stdout.write("  FORWARD METRICS DIAGNOSTICS")
+        self.stdout.write("  " + "="*50)
+
+        # Check a specific date that has future data
+        test_date = pd.Timestamp('2026-01-02').tz_localize('UTC')  # Early in the year
+
+        if test_date in df.index:
+            idx = df.index.get_loc(test_date)
+            current_price = float(df.loc[test_date, 'close'])
+
+            self.stdout.write(f"  Testing date: {test_date.date()}")
+            self.stdout.write(f"  Current price: ${current_price:.2f}")
+
+            # Calculate forward metrics for this date
+            forward = self.calculate_forward_metrics(df, idx, test_date, current_price)
+
+            self.stdout.write("\n  Forward 1Y metrics:")
+            self.stdout.write(f"    Max rise: {forward.get('fwd_max_rise_1y')}%")
+            self.stdout.write(f"    Max drop: {forward.get('fwd_max_drop_1y')}%")
+            self.stdout.write(f"    Max drawdown: {forward.get('fwd_max_drawdown')}%")
+            self.stdout.write(f"    Drawdown duration: {forward.get('fwd_drawdown_duration')} days")
+            self.stdout.write(f"    Sharpe ratio: {forward.get('fwd_sharpe_ratio')}")
+
+            self.stdout.write("\n  Forward volatility:")
+            self.stdout.write(f"    1M: {forward.get('fwd_volatility_1m')}%")
+            self.stdout.write(f"    3M: {forward.get('fwd_volatility_3m')}%")
+            self.stdout.write(f"    6M: {forward.get('fwd_volatility_6m')}%")
+        else:
+            self.stdout.write(self.style.WARNING(f"  Test date {test_date.date()} not found in data"))
 
         self.stdout.write("  " + "="*50)
 
