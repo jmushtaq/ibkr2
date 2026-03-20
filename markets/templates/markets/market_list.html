@@ -462,16 +462,21 @@ class ColumnVisibilityManager {
         this.columnMapping = this.buildColumnMapping();
         this.init();
     }
-    
+
     buildColumnMapping() {
         // Build a mapping from header text to column ID
         return {
+            // Basic
             'Symbol': 'ticker',
             'Company Name': 'name',
             'Market Cap (B)': 'market_cap',
             'Sector': 'sector',
             'Industry': 'industry',
+            
+            // Price
             'Price': 'current_price',
+            
+            // Historical Returns
             '1D %': 'change_1d',
             '1W %': 'change_1w',
             '2W %': 'change_2w',
@@ -479,17 +484,35 @@ class ColumnVisibilityManager {
             '3M %': 'change_3m',
             '6M %': 'change_6m',
             '1Y %': 'change_1y',
-            'Volume': 'volume',
-            'Avg Vol (20D)': 'avg_volume_20d',
-            'P/E': 'pe_ratio',
-            'Div Yield %': 'dividend_yield',
-            '52W High': 'week_52_high',
-            '52W Low': 'week_52_low',
-            'Rel Volume': 'relative_volume',
-            'ATR': 'atr',
-            'RSI': 'rsi'
+            
+            // Forward Max Rise
+            'Fwd Max Rise 1D': 'fwd_max_rise_1d',
+            'Fwd Max Rise 1W': 'fwd_max_rise_1w',
+            'Fwd Max Rise 2W': 'fwd_max_rise_2w',
+            'Fwd Max Rise 1M': 'fwd_max_rise_1m',
+            'Fwd Max Rise 3M': 'fwd_max_rise_3m',
+            'Fwd Max Rise 6M': 'fwd_max_rise_6m',
+            'Fwd Max Rise 1Y': 'fwd_max_rise_1y',
+            
+            // Forward Max Drop
+            'Fwd Max Drop 1D': 'fwd_max_drop_1d',
+            'Fwd Max Drop 1W': 'fwd_max_drop_1w',
+            'Fwd Max Drop 2W': 'fwd_max_drop_2w',
+            'Fwd Max Drop 1M': 'fwd_max_drop_1m',
+            'Fwd Max Drop 3M': 'fwd_max_drop_3m',
+            'Fwd Max Drop 6M': 'fwd_max_drop_6m',
+            'Fwd Max Drop 1Y': 'fwd_max_drop_1y',
+            
+            // Risk Metrics
+            'Volatility 1M': 'fwd_volatility_1m',
+            'Volatility 3M': 'fwd_volatility_3m',
+            'Volatility 6M': 'fwd_volatility_6m',
+            'Sharpe Ratio': 'fwd_sharpe_ratio',
+            'Max Drawdown': 'fwd_max_drawdown',
+            'Drawdown Duration': 'fwd_drawdown_duration',
         };
     }
+
     
     init() {
         this.renderColumnSelector();

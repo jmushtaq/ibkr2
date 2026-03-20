@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 from .models import PrecomputedMetrics
 
 class SymbolMetricsTable(tables.Table):
-    # Define columns with explicit accessors
+    # Existing columns
     ticker = tables.Column(
         accessor='symbol.ticker',
         verbose_name='Symbol',
@@ -41,6 +41,7 @@ class SymbolMetricsTable(tables.Table):
         orderable=True,
     )
 
+    # Backward-looking returns
     change_1d = tables.Column(
         accessor='change_1d',
         verbose_name='1D %',
@@ -83,6 +84,129 @@ class SymbolMetricsTable(tables.Table):
         orderable=True,
     )
 
+    # Forward-looking metrics - Max Rise
+    fwd_max_rise_1d = tables.Column(
+        accessor='fwd_max_rise_1d',
+        verbose_name='Fwd Max Rise 1D',
+        orderable=True,
+    )
+
+    fwd_max_rise_1w = tables.Column(
+        accessor='fwd_max_rise_1w',
+        verbose_name='Fwd Max Rise 1W',
+        orderable=True,
+    )
+
+    fwd_max_rise_2w = tables.Column(
+        accessor='fwd_max_rise_2w',
+        verbose_name='Fwd Max Rise 2W',
+        orderable=True,
+    )
+
+    fwd_max_rise_1m = tables.Column(
+        accessor='fwd_max_rise_1m',
+        verbose_name='Fwd Max Rise 1M',
+        orderable=True,
+    )
+
+    fwd_max_rise_3m = tables.Column(
+        accessor='fwd_max_rise_3m',
+        verbose_name='Fwd Max Rise 3M',
+        orderable=True,
+    )
+
+    fwd_max_rise_6m = tables.Column(
+        accessor='fwd_max_rise_6m',
+        verbose_name='Fwd Max Rise 6M',
+        orderable=True,
+    )
+
+    fwd_max_rise_1y = tables.Column(
+        accessor='fwd_max_rise_1y',
+        verbose_name='Fwd Max Rise 1Y',
+        orderable=True,
+    )
+
+    # Forward-looking metrics - Max Drop
+    fwd_max_drop_1d = tables.Column(
+        accessor='fwd_max_drop_1d',
+        verbose_name='Fwd Max Drop 1D',
+        orderable=True,
+    )
+
+    fwd_max_drop_1w = tables.Column(
+        accessor='fwd_max_drop_1w',
+        verbose_name='Fwd Max Drop 1W',
+        orderable=True,
+    )
+
+    fwd_max_drop_2w = tables.Column(
+        accessor='fwd_max_drop_2w',
+        verbose_name='Fwd Max Drop 2W',
+        orderable=True,
+    )
+
+    fwd_max_drop_1m = tables.Column(
+        accessor='fwd_max_drop_1m',
+        verbose_name='Fwd Max Drop 1M',
+        orderable=True,
+    )
+
+    fwd_max_drop_3m = tables.Column(
+        accessor='fwd_max_drop_3m',
+        verbose_name='Fwd Max Drop 3M',
+        orderable=True,
+    )
+
+    fwd_max_drop_6m = tables.Column(
+        accessor='fwd_max_drop_6m',
+        verbose_name='Fwd Max Drop 6M',
+        orderable=True,
+    )
+
+    fwd_max_drop_1y = tables.Column(
+        accessor='fwd_max_drop_1y',
+        verbose_name='Fwd Max Drop 1Y',
+        orderable=True,
+    )
+
+    # Additional metrics
+    fwd_volatility_1m = tables.Column(
+        accessor='fwd_volatility_1m',
+        verbose_name='Volatility 1M',
+        orderable=True,
+    )
+
+    fwd_volatility_3m = tables.Column(
+        accessor='fwd_volatility_3m',
+        verbose_name='Volatility 3M',
+        orderable=True,
+    )
+
+    fwd_volatility_6m = tables.Column(
+        accessor='fwd_volatility_6m',
+        verbose_name='Volatility 6M',
+        orderable=True,
+    )
+
+    fwd_sharpe_ratio = tables.Column(
+        accessor='fwd_sharpe_ratio',
+        verbose_name='Sharpe Ratio',
+        orderable=True,
+    )
+
+    fwd_max_drawdown = tables.Column(
+        accessor='fwd_max_drawdown',
+        verbose_name='Max Drawdown',
+        orderable=True,
+    )
+
+    fwd_drawdown_duration = tables.Column(
+        accessor='fwd_drawdown_duration',
+        verbose_name='Drawdown Duration',
+        orderable=True,
+    )
+
     def render_ticker(self, value, record):
         """Render ticker as a link to the chart page"""
         if value is None:
@@ -98,7 +222,13 @@ class SymbolMetricsTable(tables.Table):
     def render_market_cap(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            float_val = float(value)
+            if float_val >= 1000:
+                return format_html('${:.1f}T', float_val / 1000)
+            return format_html('${:.1f}B', float_val)
+        except:
+            return str(value)
 
     def render_sector(self, value, record):
         if value is None:
@@ -113,50 +243,249 @@ class SymbolMetricsTable(tables.Table):
     def render_current_price(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            return format_html('${:.2f}', float(value))
+        except:
+            return str(value)
 
     def render_change_1d(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_1w(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_2w(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_1m(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_3m(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_6m(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
 
     def render_change_1y(self, value, record):
         if value is None:
             return '-'
-        return str(value)
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}%</span>', color, float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_1d(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_1w(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_2w(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_1m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_3m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_6m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_rise_1y(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-success">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_1d(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_1w(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_2w(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_1m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_3m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_6m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drop_1y(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_volatility_1m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('{:.2f}%', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_volatility_3m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('{:.2f}%', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_volatility_6m(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('{:.2f}%', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_sharpe_ratio(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            color = 'text-success' if float(value) > 0 else 'text-danger'
+            return format_html('<span class="{}">{:.2f}</span>', color, float(value))
+        except:
+            return str(value)
+
+    def render_fwd_max_drawdown(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('<span class="text-danger">{:.2f}%</span>', float(value))
+        except:
+            return str(value)
+
+    def render_fwd_drawdown_duration(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return str(int(value))
+        except:
+            return str(value)
 
     class Meta:
         model = PrecomputedMetrics
         template_name = "django_tables2/bootstrap5.html"
         fields = [
             'ticker', 'name', 'market_cap', 'sector', 'industry',
-            'current_price', 'change_1d', 'change_1w', 'change_2w',
+            'current_price',
+            'change_1d', 'change_1w', 'change_2w',
             'change_1m', 'change_3m', 'change_6m', 'change_1y',
+            'fwd_max_rise_1d', 'fwd_max_rise_1w', 'fwd_max_rise_2w',
+            'fwd_max_rise_1m', 'fwd_max_rise_3m', 'fwd_max_rise_6m', 'fwd_max_rise_1y',
+            'fwd_max_drop_1d', 'fwd_max_drop_1w', 'fwd_max_drop_2w',
+            'fwd_max_drop_1m', 'fwd_max_drop_3m', 'fwd_max_drop_6m', 'fwd_max_drop_1y',
+            'fwd_volatility_1m', 'fwd_volatility_3m', 'fwd_volatility_6m',
+            'fwd_sharpe_ratio', 'fwd_max_drawdown', 'fwd_drawdown_duration',
         ]
         attrs = {
             'class': 'table table-striped table-hover table-sm',
@@ -165,4 +494,3 @@ class SymbolMetricsTable(tables.Table):
         }
         order_by = 'ticker'
         per_page = 25
-
