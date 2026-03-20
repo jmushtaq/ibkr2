@@ -484,16 +484,23 @@ class ColumnVisibilityManager {
             '3M %': 'change_3m',
             '6M %': 'change_6m',
             '1Y %': 'change_1y',
-            
+
             // Forward Max Rise
-            'Fwd Max Rise 1D': 'fwd_max_rise_1d',
-            'Fwd Max Rise 1W': 'fwd_max_rise_1w',
-            'Fwd Max Rise 2W': 'fwd_max_rise_2w',
-            'Fwd Max Rise 1M': 'fwd_max_rise_1m',
-            'Fwd Max Rise 3M': 'fwd_max_rise_3m',
-            'Fwd Max Rise 6M': 'fwd_max_rise_6m',
-            'Fwd Max Rise 1Y': 'fwd_max_rise_1y',
-            
+//            'Fwd Change 1W': 'fwd_change_1w',
+//            'Fwd Change 2W': 'fwd_change_2w',
+//            'Fwd Change 1M': 'fwd_change_1m',
+//            'Fwd Change 3M': 'fwd_change_3m',
+//            'Fwd Change 6M': 'fwd_change_6m',
+//            'Fwd Change 1Y': 'fwd_change_1y',
+            'Fwd 1D %': 'fwd_change_1d',
+            'Fwd 1W %': 'fwd_change_1w',
+            'Fwd 2W %': 'fwd_change_2w',
+            'Fwd 1M %': 'fwd_change_1m',
+            'Fwd 3M %': 'fwd_change_3m',
+            'Fwd 6M %': 'fwd_change_6m',
+            'Fwd 1Y %': 'fwd_change_1y',
+
+
             // Risk Metrics
             'Volatility 1M': 'fwd_volatility_1m',
             'Volatility 3M': 'fwd_volatility_3m',
@@ -515,6 +522,10 @@ class ColumnVisibilityManager {
         console.log('Column Manager Initialized');
         console.log('Current Columns:', this.currentColumns);
         console.log('Default Columns:', this.defaultColumns);
+
+        console.log('allColumns:', this.allColumns);
+        console.log('defaultColumns:', this.defaultColumns);
+        console.log('currentColumns after load:', this.currentColumns);
     }
     
     setupEventListeners() {
@@ -626,6 +637,7 @@ class ColumnVisibilityManager {
         console.log('Updating table visibility');
         console.log('Headers found:', headers.length);
         console.log('Rows found:', rows.length);
+        console.log('Current columns to show:', this.currentColumns);
         
         // First, hide/show headers and build index mapping
         const columnIndices = {};

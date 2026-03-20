@@ -28,13 +28,13 @@ def dashboard_settings(request):
             {'id': 'change_1y', 'name': '1Y %', 'category': 'Historical Returns'},
 
             # Forward Max Rise
-            {'id': 'fwd_max_rise_1d', 'name': 'Forward Max Rise 1D', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_1w', 'name': 'Forward Max Rise 1W', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_2w', 'name': 'Forward Max Rise 2W', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_1m', 'name': 'Forward Max Rise 1M', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_3m', 'name': 'Forward Max Rise 3M', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_6m', 'name': 'Forward Max Rise 6M', 'category': 'Forward Max Rise'},
-            {'id': 'fwd_max_rise_1y', 'name': 'Forward Max Rise 1Y', 'category': 'Forward Max Rise'},
+            {'id': 'fwd_change_1d', 'name': 'Forward Change 1D', 'category': 'Forward Change'},
+            {'id': 'fwd_change_1w', 'name': 'Forward Change 1W', 'category': 'Forward Change'},
+            {'id': 'fwd_change_2w', 'name': 'Forward Change 2W', 'category': 'Forward Change'},
+            {'id': 'fwd_change_1m', 'name': 'Forward Change 1M', 'category': 'Forward Change'},
+            {'id': 'fwd_change_3m', 'name': 'Forward Change 3M', 'category': 'Forward Change'},
+            {'id': 'fwd_change_6m', 'name': 'Forward Change 6M', 'category': 'Forward Change'},
+            {'id': 'fwd_change_1y', 'name': 'Forward Change 1Y', 'category': 'Forward Change'},
 
             # Risk Metrics
             {'id': 'fwd_volatility_1m', 'name': 'Volatility 1M', 'category': 'Risk Metrics'},

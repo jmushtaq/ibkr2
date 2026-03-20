@@ -324,13 +324,14 @@ class Command(BaseCommand):
                 change_1y=backward_changes.get('change_1y'),
 
                 # Forward-looking
-                fwd_max_rise_1d=forward_metrics.get('fwd_max_rise_1d'),
-                fwd_max_rise_1w=forward_metrics.get('fwd_max_rise_1w'),
-                fwd_max_rise_2w=forward_metrics.get('fwd_max_rise_2w'),
-                fwd_max_rise_1m=forward_metrics.get('fwd_max_rise_1m'),
-                fwd_max_rise_3m=forward_metrics.get('fwd_max_rise_3m'),
-                fwd_max_rise_6m=forward_metrics.get('fwd_max_rise_6m'),
-                fwd_max_rise_1y=forward_metrics.get('fwd_max_rise_1y'),
+                fwd_change_1d=forward_metrics.get('fwd_change_1d'),
+                fwd_change_1w=forward_metrics.get('fwd_change_1w'),
+                fwd_change_2w=forward_metrics.get('fwd_change_2w'),
+                fwd_change_1m=forward_metrics.get('fwd_change_1m'),
+                fwd_change_3m=forward_metrics.get('fwd_change_3m'),
+                fwd_change_6m=forward_metrics.get('fwd_change_6m'),
+                fwd_change_1y=forward_metrics.get('fwd_change_1y'),
+
                 fwd_volatility_1m=forward_metrics.get('fwd_volatility_1m'),
                 fwd_volatility_3m=forward_metrics.get('fwd_volatility_3m'),
                 fwd_volatility_6m=forward_metrics.get('fwd_volatility_6m'),
@@ -376,7 +377,7 @@ class Command(BaseCommand):
         if len(future_data) == 0:
             # No future data available
             for period_key in forward_periods.keys():
-                forward_metrics[f'fwd_max_rise_{period_key}'] = None
+                forward_metrics[f'fwd_change_{period_key}'] = None
             forward_metrics['fwd_volatility_1m'] = None
             forward_metrics['fwd_volatility_3m'] = None
             forward_metrics['fwd_volatility_6m'] = None
@@ -393,17 +394,14 @@ class Command(BaseCommand):
             window_data = future_data[future_data.index <= target_date]
 
             if len(window_data) > 0:
-                # Calculate max rise
-                future_prices = window_data['close'].values
-                future_high = np.max(future_prices)
-                future_low = np.min(future_prices)
+                # Get the price at the end of the period (closest to target date)
+                end_price = float(window_data.iloc[-1]['close'])
 
-                # Max rise (highest price relative to current)
-                max_rise_pct = ((future_high - current_price) / current_price) * 100
-                forward_metrics[f'fwd_max_rise_{period_key}'] = round(max_rise_pct, 2)
-
+                # Calculate forward change (end price vs current price)
+                fwd_change_pct = ((end_price - current_price) / current_price) * 100
+                forward_metrics[f'fwd_change_{period_key}'] = round(fwd_change_pct, 2)
             else:
-                forward_metrics[f'fwd_max_rise_{period_key}'] = None
+                forward_metrics[f'fwd_change_{period_key}'] = None
 
         # Calculate volatility for different periods
         for period, days in [('1m', 30), ('3m', 90), ('6m', 180)]:
@@ -445,30 +443,20 @@ class Command(BaseCommand):
 
         # Calculate maximum drawdown over next year
         if len(year_data) > 0:
-            # Calculate cumulative returns
             prices = year_data['close'].values
             peak = prices[0]
             max_drawdown = 0
-            drawdown_start = None
-            current_drawdown_start = None
             max_drawdown_duration = 0
             current_drawdown_duration = 0
 
             for i, price in enumerate(prices):
                 if price > peak:
                     peak = price
-                    current_drawdown_start = None
                     current_drawdown_duration = 0
                 else:
                     drawdown = ((price - peak) / peak) * 100
                     max_drawdown = min(max_drawdown, drawdown)
-
-                    if current_drawdown_start is None:
-                        current_drawdown_start = i
-                        current_drawdown_duration = 1
-                    else:
-                        current_drawdown_duration += 1
-
+                    current_drawdown_duration += 1
                     max_drawdown_duration = max(max_drawdown_duration, current_drawdown_duration)
 
             forward_metrics['fwd_max_drawdown'] = round(max_drawdown, 2) if max_drawdown < 0 else 0
@@ -478,6 +466,7 @@ class Command(BaseCommand):
             forward_metrics['fwd_drawdown_duration'] = None
 
         return forward_metrics
+
 
     def diagnose_data(self, symbol, df):
         """Diagnose data continuity for a symbol"""
@@ -565,7 +554,7 @@ class Command(BaseCommand):
             forward = self.calculate_forward_metrics(df, idx, test_date, current_price)
 
             self.stdout.write("\n  Forward 1Y metrics:")
-            self.stdout.write(f"    Max rise: {forward.get('fwd_max_rise_1y')}%")
+            self.stdout.write(f"    Max rise: {forward.get('fwd_change_1y')}%")
             self.stdout.write(f"    Max drawdown: {forward.get('fwd_max_drawdown')}%")
             self.stdout.write(f"    Drawdown duration: {forward.get('fwd_drawdown_duration')} days")
             self.stdout.write(f"    Sharpe ratio: {forward.get('fwd_sharpe_ratio')}")
