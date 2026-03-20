@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Price Chart - {{ ticker }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Select2 for searchable dropdown -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #1e222d; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            overflow: hidden;
+            color: #d1d4dc;
+        }
+        .container-fluid { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+        .card { 
+            box-shadow: 0 2px 4px rgba(0,0,0,.3); 
+            border: none; 
+            border-radius: 10px; 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background-color: #2a2e39;
+        }
+        .card-header { 
+            background: linear-gradient(135deg, #2962ff 0%, #0039cb 100%); 
+            color: white; 
+            border-radius: 10px 10px 0 0 !important; 
+            padding: 15px 20px; 
+            flex-shrink: 0;
+            border-bottom: 1px solid #3c404c;
+        }
+        .card-header h5 { 
+            margin: 0; 
+            font-weight: 600; 
+        }
+        .card-body { 
+            padding: 20px; 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background-color: #2a2e39;
+        }
+        .controls { 
+            margin-bottom: 15px; 
+            flex-shrink: 0;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #9b9fb1;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .btn-group-sm .btn { 
+            padding: 0.25rem 0.5rem; 
+        }
+        .text-muted { 
+            color: #9b9fb1 !important; 
+        }
+        .form-select, .btn { 
+            border-radius: 6px; 
+            background-color: #3c404c;
+            border-color: #4c505e;
+            color: #d1d4dc;
+        }
+        .form-select option {
+            background-color: #2a2e39;
+        }
+        .btn-outline-secondary {
+            color: #d1d4dc;
+            border-color: #4c505e;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #4c505e;
+            color: white;
+        }
+        .btn-primary {
+            background-color: #2962ff;
+            border-color: #2962ff;
+        }
+        .btn-primary:hover {
+            background-color: #0039cb;
+            border-color: #0039cb;
+        }
+        .form-switch .form-check-input {
+            width: 2.5em;
+            height: 1.25em;
+            margin-right: 0.5em;
+            cursor: pointer;
+            background-color: #3c404c;
+            border-color: #4c505e;
+        }
+        .form-switch .form-check-input:checked {
+            background-color: #2962ff;
+            border-color: #2962ff;
+        }
+        .form-check-label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.9rem;
+            color: #d1d4dc;
+        }
+        .form-check-label i {
+            margin-right: 0.25em;
+        }
+        #chartContainer { 
+            position: relative; 
+            flex: 1;
+            min-height: 0;
+            width: 100%; 
+            margin-top: 15px;
+            background-color: #1e222d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* Select2 custom styling */
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #4c505e;
+            border-radius: 6px;
+            background-color: #3c404c;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+            padding-left: 12px;
+            color: #d1d4dc;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+        .select2-dropdown {
+            border: 1px solid #4c505e;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.3);
+            background-color: #2a2e39;
+        }
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #4c505e;
+            border-radius: 4px;
+            padding: 6px;
+            background-color: #3c404c;
+            color: #d1d4dc;
+        }
+        .select2-results__option--highlighted {
+            background-color: #2962ff !important;
+        }
+        .select2-results__option {
+            color: #d1d4dc;
+        }
+        
+        .symbol-selector {
+            width: 100%;
+        }
+
+        .badge-overlay { background-color: #28a745; }
+        .badge-oscillator { background-color: #fd7e14; }
+        .badge-volume { background-color: #17a2b8; }
+        .badge { 
+            display: inline-block; 
+            padding: 0.25em 0.4em; 
+            font-size: 75%; 
+            font-weight: 700; 
+            line-height: 1; 
+            text-align: center; 
+            white-space: nowrap; 
+            vertical-align: baseline; 
+            border-radius: 0.25rem;
+            color: white;
+            margin-right: 4px;
+        }
+
+        .status-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(42, 46, 57, 0.95);
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1500;
+            display: none;
+            font-size: 14px;
+            color: #2962ff;
+            border: 1px solid #2962ff;
+        }
+        .status-message i {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Trading Chart
+                </h5>
+                <button class="btn btn-sm btn-light" onclick="window.close()" style="background-color: #3c404c; color: #d1d4dc; border-color: #4c505e;">
+                    <i class="fas fa-times"></i> Close Tab
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row controls">
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-search me-1"></i>Symbol</label>
+                            <select class="form-select symbol-selector" id="symbolSelect">
+                                <option value="{{ ticker }}" selected>{{ ticker }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-clock me-1"></i>Frequency</label>
+                            <select class="form-select" id="chartFrequency">
+                                <option value="1D">Daily</option>
+                                <option value="1H">Hourly</option>
+                                <option value="15min">15 Minutes</option>
+                                <option value="5min">5 Minutes</option>
+                                <option value="1min">1 Minute</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-calendar-alt me-1"></i>Start Year</label>
+                            <select class="form-select" id="chartYearFrom">
+                                {% for year in year_range %}
+                                    <option value="{{ year }}" {% if year == 2025 %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-calendar-alt me-1"></i>End Year</label>
+                            <select class="form-select" id="chartYearTo">
+                                {% for year in year_range %}
+                                    <option value="{{ year }}" {% if year == 2026 %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-sync-alt me-1"></i>Action</label>
+                            <button class="btn btn-primary w-100" onclick="loadChart()">
+                                <i class="fas fa-sync-alt me-2"></i>Update
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="control-group">
+                            <label class="control-label"><i class="fas fa-undo me-1"></i>View</label>
+                            <button class="btn btn-outline-secondary w-100" onclick="resetChart()">
+                                <i class="fas fa-undo me-1"></i>Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indicator selector row -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card bg-dark">
+                            <div class="card-body py-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-2">
+                                        <label class="control-label mb-0"><i class="fas fa-chart-line me-1"></i>Indicators</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <select class="form-select" id="indicatorSelect" multiple="multiple" style="width: 100%;">
+                                            <optgroup label="Trend">
+                                                <option value="sma">Simple Moving Average (SMA)</option>
+                                                <option value="ema">Exponential Moving Average (EMA)</option>
+                                                <option value="bb">Bollinger Bands</option>
+                                            </optgroup>
+                                            <optgroup label="Momentum">
+                                                <option value="rsi">RSI</option>
+                                                <option value="macd">MACD</option>
+                                                <option value="stoch">Stochastic</option>
+                                            </optgroup>
+                                            <optgroup label="Volume">
+                                                <option value="volume">Volume</option>
+                                                <option value="obv">On-Balance Volume</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-outline-primary w-100" onclick="applyIndicators()">
+                                            <i class="fas fa-calculator me-2"></i>Apply
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chartContainer"></div>
+                <div id="statusMessage" class="status-message">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="statusText"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let chart = null;
+        let candlestickSeries = null;
+        let volumeSeries = null;
+        let indicatorSeries = [];
+        let allSymbols = [];
+        let currentData = null;
+
+        const currentTicker = "{{ ticker }}";
+        
+        $(document).ready(function() {
+            // Load all symbols for the dropdown
+            loadAllSymbols();
+            
+            // Initialize Select2 for searchable dropdown
+            $('#symbolSelect').select2({
+                placeholder: 'Search for a symbol...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#symbolSelect').parent(),
+                matcher: function(params, data) {
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+                    const term = params.term.toUpperCase();
+                    const text = data.text.toUpperCase();
+                    if (text.indexOf(term) > -1) {
+                        return data;
+                    }
+                    return null;
+                }
+            });
+            
+            $('#indicatorSelect').select2({
+                placeholder: 'Select indicators...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#indicatorSelect').parent()
+            });
+            
+            // Handle symbol change
+            $('#symbolSelect').on('change', function() {
+                const newSymbol = $(this).val();
+                if (newSymbol && newSymbol !== currentTicker) {
+                    loadChart(newSymbol);
+                    document.title = 'Price Chart - ' + newSymbol;
+                }
+            });
+            
+            // Initialize chart
+            createChart();
+            loadChart(currentTicker);
+        });
+        
+        function showStatus(message, isError = false) {
+            $('#statusText').text(message);
+            $('#statusMessage').css('color', isError ? '#dc3545' : '#2962ff');
+            $('#statusMessage').css('border-color', isError ? '#dc3545' : '#2962ff');
+            $('#statusMessage').fadeIn(200);
+            setTimeout(function() {
+                $('#statusMessage').fadeOut(500);
+            }, 3000);
+        }
+        
+        function createChart() {
+            const container = document.getElementById('chartContainer');
+            
+            // Create chart with TradingView style
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: {
+                    backgroundColor: '#1e222d',
+                    textColor: '#d1d4dc',
+                },
+                grid: {
+                    vertLines: {
+                        color: '#2a2e39',
+                    },
+                    horzLines: {
+                        color: '#2a2e39',
+                    },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#2a2e39',
+                },
+                timeScale: {
+                    borderColor: '#2a2e39',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+            
+            // Create candlestick series
+            candlestickSeries = chart.addCandlestickSeries({
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderDownColor: '#ef5350',
+                borderUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
+                wickUpColor: '#26a69a',
+            });
+            
+            // Create volume series
+            volumeSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: {
+                    type: 'volume',
+                },
+                priceScaleId: '',
+                scaleMargins: {
+                    top: 0.8,
+                    bottom: 0,
+                },
+            });
+            
+            // Handle resize
+            window.addEventListener('resize', () => {
+                chart.applyOptions({
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+            });
+        }
+        
+        function loadAllSymbols() {
+            $.ajax({
+                url: "/markets/api/symbols/",
+                method: "GET",
+                success: function(data) {
+                    allSymbols = data.symbols || [];
+                    
+                    const select = $('#symbolSelect');
+                    select.empty();
+                    
+                    select.append(new Option(currentTicker, currentTicker, true, true));
+                    
+                    allSymbols.forEach(function(symbol) {
+                        if (symbol !== currentTicker) {
+                            select.append(new Option(symbol, symbol));
+                        }
+                    });
+                    
+                    select.trigger('change');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading symbols:', error);
+                }
+            });
+        }
+        
+        function loadChart(symbol = null) {
+            const ticker = symbol || $("#symbolSelect").val() || currentTicker;
+            let frequency = $("#chartFrequency").val();
+            let yearFrom = $("#chartYearFrom").val();
+            let yearTo = $("#chartYearTo").val();
+            
+            showStatus('Loading data...');
+            
+            $.ajax({
+                url: "/markets/api/chart-data/",
+                data: { ticker: ticker, frequency: frequency, start_year: yearFrom, end_year: yearTo },
+                success: function(data) {
+                    if (data.error) { 
+                        alert(data.error); 
+                        return; 
+                    }
+                    
+                    currentData = data;
+                    
+                    // Format data for lightweight charts
+                    const candlestickData = [];
+                    const volumeData = [];
+                    
+                    for (let i = 0; i < data.dates.length; i++) {
+                        const time = data.dates[i].split('T')[0] + ' ' + data.dates[i].split('T')[1];
+                        
+                        candlestickData.push({
+                            time: time,
+                            open: data.open[i],
+                            high: data.high[i],
+                            low: data.low[i],
+                            close: data.close[i],
+                        });
+                        
+                        volumeData.push({
+                            time: time,
+                            value: data.volume[i],
+                            color: data.close[i] >= data.open[i] ? '#26a69a' : '#ef5350',
+                        });
+                    }
+                    
+                    // Set data to series
+                    candlestickSeries.setData(candlestickData);
+                    volumeSeries.setData(volumeData);
+                    
+                    // Fit content
+                    chart.timeScale().fitContent();
+                    
+                    showStatus('Chart loaded successfully');
+                },
+                error: function(xhr, status, error) {
+                    alert("Error loading chart data: " + error);
+                }
+            });
+        }
+        
+        function applyIndicators() {
+            const selectedIndicators = $('#indicatorSelect').val();
+            
+            if (!selectedIndicators || selectedIndicators.length === 0) {
+                // Remove all indicators
+                indicatorSeries.forEach(series => {
+                    chart.removeSeries(series);
+                });
+                indicatorSeries = [];
+                showStatus('Indicators cleared');
+                return;
+            }
+            
+            showStatus('Adding indicators...');
+            
+            // For now, just show a message - we'll implement indicators in the next step
+            showStatus('Indicators feature coming soon');
+        }
+        
+        function resetChart() {
+            if (chart) {
+                chart.timeScale().fitContent();
+                showStatus('Chart reset');
+            }
+        }
+    </script>
+</body>
+</html>
+
