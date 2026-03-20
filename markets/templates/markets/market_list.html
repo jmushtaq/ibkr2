@@ -1,4 +1,3 @@
-<!-- markets/templates/markets/market_list.html -->
 {% extends 'markets/base.html' %}
 {% load django_tables2 %}
 {% load crispy_forms_tags %}
@@ -207,17 +206,6 @@
                     </div>
 
                     <!-- Column Selector Dropdown -->
-                    <!--
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="columnSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-columns me-1"></i> Columns
-                            <span class="badge-column-count" id="visibleColumnCount">0</span>
-                        </button>
-                    </div>
-                    -->
-
-
-                    <!-- Column Selector Dropdown -->
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="columnSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-columns me-1"></i> Columns
@@ -263,6 +251,9 @@
             <div class="collapse" id="filterCollapse">
                 <div class="card-body bg-light">
                     <form method="get" class="form" id="filterForm">
+                        <!-- Preserve as_of_date in filter form -->
+                        <input type="hidden" name="as_of_date" id="filterAsOfDate" value="{{ selected_date }}">
+                        
                         <div class="row">
                             <div class="col-md-3">
                                 {{ filter.form.search|as_crispy_field }}
@@ -280,7 +271,14 @@
                                 {{ filter.form.year_to|as_crispy_field }}
                             </div>
                         </div>
-                        
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <hr>
+                                <h6>Hist Returns Filters</h6>
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-2">
                                 {{ filter.form.change_1d_min|as_crispy_field }}
@@ -323,13 +321,116 @@
                             </div>
                         </div>
                         
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <hr>
+                                <h6>Forward Returns Filters</h6>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1d_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1d_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1w_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1w_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_2w_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_2w_max|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1m_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_3m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_3m_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_6m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_6m_max|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1y_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_change_1y_max|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <hr>
+                                <h6>Risk Metrics Filters</h6>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_1m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_1m_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_3m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_3m_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_6m_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_volatility_6m_max|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_sharpe_ratio_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_sharpe_ratio_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_max_drawdown_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_max_drawdown_max|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_drawdown_duration_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ filter.form.fwd_drawdown_duration_max|as_crispy_field }}
+                            </div>
+                        </div>
+
                         <div class="row mt-3">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-search"></i> Apply Filters
                                 </button>
-                                <a href="{% url 'markets:market_list' %}" class="btn btn-secondary">
-                                    <i class="fas fa-undo"></i> Reset
+                                <a href="{% url 'markets:market_list' %}?as_of_date={{ selected_date }}" class="btn btn-secondary">
+                                    <i class="fas fa-undo"></i> Reset Filters
                                 </a>
                             </div>
                         </div>
@@ -344,6 +445,7 @@
                 </div>
             </div>
 
+            <!--
             <div style="background: #f0f0f0; padding: 20px; margin: 20px; border: 2px solid red;">
                 <h3>Raw Data Debug</h3>
                 <pre>
@@ -358,8 +460,10 @@
                     {% endwith %}
                 </pre>
             </div>
+            -->
 
             <!-- Debug Section - Only one instance -->
+            <!--
             <div class="card-body">
                 <div class="debug-panel" style="background: #f0f0f0; padding: 15px; margin: 10px; border: 2px solid #2962ff; border-radius: 5px;">
                     <h4 style="color: #2962ff; margin-top: 0;">🔍 Table Debug Info</h4>
@@ -394,11 +498,12 @@
                         <div style="background: white; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
                             <h5 style="margin-top: 0; margin-bottom: 10px;">📋 First Record Sample:</h5>
                             <table style="width: 100%; border-collapse: collapse;">
-                                <tr>
+                                 <thead>
                                     <th style="text-align: left; padding: 5px; border-bottom: 1px solid #ddd;">Field</th>
                                     <th style="text-align: left; padding: 5px; border-bottom: 1px solid #ddd;">Value</th>
-                                </tr>
-                                {% with record=table.page.object_list.0 %}
+                                 </thead>
+                                <tbody>
+                                    {% with record=table.page.object_list.0 %}
                                     <tr>
                                         <td style="padding: 5px; border-bottom: 1px solid #eee;">Symbol</td>
                                         <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.symbol.ticker }}</td>
@@ -427,7 +532,8 @@
                                         <td style="padding: 5px; border-bottom: 1px solid #eee;">1Y %</td>
                                         <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.change_1y }}</td>
                                     </tr>
-                                {% endwith %}
+                                    {% endwith %}
+                                </tbody>
                             </table>
                         </div>
                     {% else %}
@@ -445,6 +551,7 @@
                     </div>
                 </div>
             </div>
+            -->
 
         </div>
     </div>
@@ -485,13 +592,7 @@ class ColumnVisibilityManager {
             '6M %': 'change_6m',
             '1Y %': 'change_1y',
 
-            // Forward Max Rise
-//            'Fwd Change 1W': 'fwd_change_1w',
-//            'Fwd Change 2W': 'fwd_change_2w',
-//            'Fwd Change 1M': 'fwd_change_1m',
-//            'Fwd Change 3M': 'fwd_change_3m',
-//            'Fwd Change 6M': 'fwd_change_6m',
-//            'Fwd Change 1Y': 'fwd_change_1y',
+            // Forward Returns
             'Fwd 1D %': 'fwd_change_1d',
             'Fwd 1W %': 'fwd_change_1w',
             'Fwd 2W %': 'fwd_change_2w',
@@ -499,7 +600,6 @@ class ColumnVisibilityManager {
             'Fwd 3M %': 'fwd_change_3m',
             'Fwd 6M %': 'fwd_change_6m',
             'Fwd 1Y %': 'fwd_change_1y',
-
 
             // Risk Metrics
             'Volatility 1M': 'fwd_volatility_1m',
@@ -522,10 +622,6 @@ class ColumnVisibilityManager {
         console.log('Column Manager Initialized');
         console.log('Current Columns:', this.currentColumns);
         console.log('Default Columns:', this.defaultColumns);
-
-        console.log('allColumns:', this.allColumns);
-        console.log('defaultColumns:', this.defaultColumns);
-        console.log('currentColumns after load:', this.currentColumns);
     }
     
     setupEventListeners() {
@@ -637,7 +733,6 @@ class ColumnVisibilityManager {
         console.log('Updating table visibility');
         console.log('Headers found:', headers.length);
         console.log('Rows found:', rows.length);
-        console.log('Current columns to show:', this.currentColumns);
         
         // First, hide/show headers and build index mapping
         const columnIndices = {};
@@ -797,11 +892,13 @@ class DatePickerManager {
         this.datePicker = document.getElementById('datePicker');
         this.selectedDateDisplay = document.getElementById('selectedDateDisplay');
         this.availableDatesSelect = document.getElementById('availableDatesSelect');
+        this.filterAsOfDate = document.getElementById('filterAsOfDate');
         
         // Set up event listeners
         if (this.datePicker) {
             this.datePicker.addEventListener('change', () => {
                 this.updateSelectedDateDisplay(this.datePicker.value);
+                this.syncFilterDate();
             });
         }
         
@@ -810,6 +907,7 @@ class DatePickerManager {
                 if (e.target.value) {
                     this.datePicker.value = e.target.value;
                     this.updateSelectedDateDisplay(e.target.value);
+                    this.syncFilterDate();
                 }
             });
             
@@ -817,6 +915,9 @@ class DatePickerManager {
                 this.applyDateFilter();
             });
         }
+        
+        // Initial sync
+        this.syncFilterDate();
     }
     
     updateSelectedDateDisplay(date) {
@@ -836,6 +937,12 @@ class DatePickerManager {
         }
     }
     
+    syncFilterDate() {
+        if (this.filterAsOfDate && this.datePicker) {
+            this.filterAsOfDate.value = this.datePicker.value;
+        }
+    }
+    
     getDates() {
         // Get all available dates from the select options
         const dates = [];
@@ -852,6 +959,7 @@ class DatePickerManager {
         if (this.datePicker) {
             this.datePicker.value = date;
             this.updateSelectedDateDisplay(date);
+            this.syncFilterDate();
         }
     }
     
@@ -961,6 +1069,7 @@ class DatePickerManager {
         if (this.datePicker) {
             this.datePicker.value = '';
             this.selectedDateDisplay.textContent = 'Latest';
+            this.syncFilterDate();
         }
     }
 }
