@@ -7,6 +7,7 @@ from django_filters.views import FilterView
 from django_tables2.views import SingleTableMixin
 from django.contrib.postgres.search import SearchVector
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.views.generic import TemplateView
 import csv
 import logging
 
@@ -26,26 +27,37 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
     paginate_by = 50
 
     def get_queryset(self):
-        """Optimize queryset with select_related"""
+        """Get queryset with data"""
         try:
-            queryset = PrecomputedMetrics.objects.filter(
+            # Get the latest date
+            latest_date = PrecomputedMetrics.objects.filter(
                 frequency='1D'
+            ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+
+            print(f"Latest date: {latest_date}")
+
+            if not latest_date:
+                print("No latest date found!")
+                return PrecomputedMetrics.objects.none()
+
+            # Get records for the latest date
+            queryset = PrecomputedMetrics.objects.filter(
+                frequency='1D',
+                as_of_date=latest_date
             ).select_related(
                 'symbol__sector',
                 'symbol__industry'
             ).order_by('symbol__ticker')
 
-            # Get the latest date by default
-            latest_date = PrecomputedMetrics.objects.filter(
-                frequency='1D'
-            ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
-
-            if latest_date:
-                queryset = queryset.filter(as_of_date=latest_date)
+            count = queryset.count()
+            print(f"Queryset count: {count}")
 
             return queryset
+
         except Exception as e:
-            logger.error(f"Error in get_queryset: {str(e)}")
+            print(f"Error in get_queryset: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return PrecomputedMetrics.objects.none()
 
     def get_filterset(self, filterset_class):
@@ -58,10 +70,16 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
         context['title'] = 'Market Dashboard'
         context['year_range'] = range(2020, 2027)
 
-        # Ensure filterset is in context
-        if not hasattr(self, 'filterset'):
-            self.filterset = self.get_filterset(self.filterset_class)
-        context['filter'] = self.filterset
+        # Add debug info
+        if hasattr(self, 'object_list'):
+            context['debug_record_count'] = self.object_list.count()
+            if self.object_list.exists():
+                first = self.object_list.first()
+                context['debug_first'] = {
+                    'ticker': first.symbol.ticker,
+                    'price': first.current_price,
+                    'change_1d': first.change_1d,
+                }
 
         return context
 
@@ -71,24 +89,19 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
             self.filterset = self.get_filterset(self.filterset_class)
             self.object_list = self.filterset.qs
 
+            print(f"Final object_list count: {self.object_list.count()}")
+
             context = self.get_context_data(
                 filter=self.filterset,
                 object_list=self.object_list
             )
 
-            response = self.render_to_response(context)
+            return self.render_to_response(context)
 
-            # Check if this is an HTMX request for partial updates
-            if request.headers.get('HX-Request'):
-                return render(request, 'markets/partials/table_rows.html', {
-                    'table': self.get_table(),
-                    'filter': self.filterset,
-                })
-
-            return response
         except Exception as e:
-            logger.error(f"Error in SymbolMetricsListView.get: {str(e)}")
-            # Return a basic error response
+            print(f"Error in get: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return render(request, 'markets/market_list.html', {
                 'error': f"An error occurred: {str(e)}",
                 'title': 'Market Dashboard',
@@ -186,43 +199,78 @@ class ChartDataView(FilterView):
 
 
 class ExportDataView(SingleTableMixin, FilterView):
-    """Export filtered data to CSV"""
+    """Export filtered data to CSV with column selection"""
 
     def get(self, request, *args, **kwargs):
         # Get filtered queryset
         self.filterset = self.get_filterset()
         self.object_list = self.filterset.qs
 
+        # Get selected columns from session or use defaults
+        export_columns = request.session.get('export_columns',
+            getattr(settings, 'MARKET_DASHBOARD_DEFAULT_COLUMNS', [
+                'ticker', 'name', 'market_cap', 'sector', 'industry',
+                'current_price', 'change_1d', 'change_1w', 'change_1m', 'change_1y'
+            ]))
+
         # Create CSV response
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="market_data.csv"'
 
         writer = csv.writer(response)
-        # Write header
-        writer.writerow([
-            'Symbol', 'Company Name', 'Market Cap', 'Sector', 'Industry',
-            'Price', '%Change 1D', '%Change 1W', '%Change 2W', '%Change 1M',
-            '%Change 3M', '%Change 6M', '%Change 1Y', 'As Of Date'
-        ])
 
-        # Write data
+        # Define column headers mapping
+        column_headers = {
+            'ticker': 'Symbol',
+            'name': 'Company Name',
+            'market_cap': 'Market Cap (B)',
+            'sector': 'Sector',
+            'industry': 'Industry',
+            'current_price': 'Price',
+            'change_1d': '1D %',
+            'change_1w': '1W %',
+            'change_2w': '2W %',
+            'change_1m': '1M %',
+            'change_3m': '3M %',
+            'change_6m': '6M %',
+            'change_1y': '1Y %',
+            'volume': 'Volume',
+            'avg_volume_20d': 'Avg Vol (20D)',
+            'pe_ratio': 'P/E',
+            'dividend_yield': 'Div Yield %',
+            'week_52_high': '52W High',
+            'week_52_low': '52W Low',
+            'relative_volume': 'Rel Volume',
+            'atr': 'ATR',
+            'rsi': 'RSI',
+        }
+
+        # Write header with selected columns
+        header = [column_headers[col] for col in export_columns if col in column_headers]
+        writer.writerow(header)
+
+        # Write data for selected columns only
         for obj in self.object_list.select_related('symbol__sector', 'symbol__industry'):
-            writer.writerow([
-                obj.symbol.ticker,
-                obj.symbol.name,
-                obj.symbol.market_cap,
-                obj.symbol.sector.name if obj.symbol.sector else '',
-                obj.symbol.industry.name if obj.symbol.industry else '',
-                obj.current_price,
-                obj.change_1d,
-                obj.change_1w,
-                obj.change_2w,
-                obj.change_1m,
-                obj.change_3m,
-                obj.change_6m,
-                obj.change_1y,
-                obj.as_of_date,
-            ])
+            row = []
+            for col in export_columns:
+                if col == 'ticker':
+                    row.append(obj.symbol.ticker)
+                elif col == 'name':
+                    row.append(obj.symbol.name)
+                elif col == 'market_cap':
+                    row.append(obj.symbol.market_cap)
+                elif col == 'sector':
+                    row.append(obj.symbol.sector.name if obj.symbol.sector else '')
+                elif col == 'industry':
+                    row.append(obj.symbol.industry.name if obj.symbol.industry else '')
+                elif col == 'current_price':
+                    row.append(obj.current_price)
+                elif hasattr(obj, col):
+                    value = getattr(obj, col)
+                    row.append(value)
+                else:
+                    row.append('')
+            writer.writerow(row)
 
         return response
 
@@ -339,4 +387,124 @@ class ChartPageView(FilterView):
             'year_range': range(2020, 2027),
         }
         return render(request, self.template_name, context)
+
+
+class DebugDataView(FilterView):
+    """Debug view to check raw data"""
+    template_name = 'markets/debug_data.html'
+
+    def get(self, request, *args, **kwargs):
+        # Get latest metrics
+        latest_date = PrecomputedMetrics.objects.filter(
+            frequency='1D'
+        ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+
+        metrics = PrecomputedMetrics.objects.filter(
+            frequency='1D',
+            as_of_date=latest_date
+        ).select_related('symbol')[:50]
+
+        context = {
+            'metrics': metrics,
+            'total_count': PrecomputedMetrics.objects.filter(frequency='1D').count(),
+            'latest_date': latest_date,
+        }
+        return render(request, self.template_name, context)
+
+
+def diagnostic_view(request):
+    """Diagnostic endpoint to check data"""
+    import json
+    from django.core import serializers
+
+    # Check PrecomputedMetrics
+    metrics_count = PrecomputedMetrics.objects.filter(frequency='1D').count()
+    dates = PrecomputedMetrics.objects.filter(frequency='1D').values_list('as_of_date', flat=True).distinct().order_by('-as_of_date')
+
+    # Get a sample of records
+    sample_records = []
+    if dates:
+        latest_date = dates.first()
+        sample = PrecomputedMetrics.objects.filter(
+            frequency='1D',
+            as_of_date=latest_date
+        ).select_related('symbol')[:5]
+
+        for record in sample:
+            sample_records.append({
+                'ticker': record.symbol.ticker,
+                'date': str(record.as_of_date),
+                'price': record.current_price,
+                'change_1d': record.change_1d,
+                'change_1w': record.change_1w,
+                'change_1m': record.change_1m,
+                'change_1y': record.change_1y,
+            })
+
+    return JsonResponse({
+        'metrics_count': metrics_count,
+        'available_dates': [str(d) for d in dates[:10]],
+        'sample_records': sample_records,
+        'latest_date': str(dates.first()) if dates else None,
+    })
+
+
+# markets/views.py - Update SimpleMarketView
+
+class SimpleMarketView(SingleTableMixin, FilterView):
+    """Simplified view for testing"""
+    model = PrecomputedMetrics
+    table_class = SymbolMetricsTable
+    template_name = 'markets/simple_market_list.html'  # Use a different template
+    paginate_by = 50
+
+    def get_queryset(self):
+        # Get the latest date first
+        latest_date = PrecomputedMetrics.objects.filter(
+            frequency='1D'
+        ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+
+        if not latest_date:
+            return PrecomputedMetrics.objects.none()
+
+        # Return full queryset
+        return PrecomputedMetrics.objects.filter(
+            frequency='1D',
+            as_of_date=latest_date
+        ).select_related(
+            'symbol__sector',
+            'symbol__industry'
+        ).order_by('symbol__ticker')
+
+
+class MinimalTestView(TemplateView):
+    """Minimal test view to check data access"""
+    template_name = 'markets/minimal_test.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get some data directly
+        latest_date = PrecomputedMetrics.objects.filter(
+            frequency='1D'
+        ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+
+        if latest_date:
+            records = PrecomputedMetrics.objects.filter(
+                frequency='1D',
+                as_of_date=latest_date
+            ).select_related('symbol')[:5]
+
+            context['records'] = records
+            context['record_count'] = records.count()
+            context['latest_date'] = latest_date
+        else:
+            context['records'] = []
+            context['record_count'] = 0
+            context['latest_date'] = None
+
+        # Get total count
+        context['total_count'] = PrecomputedMetrics.objects.filter(frequency='1D').count()
+
+        return context
 

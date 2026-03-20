@@ -1,10 +1,140 @@
+<!-- markets/templates/markets/market_list.html -->
 {% extends 'markets/base.html' %}
 {% load django_tables2 %}
 {% load crispy_forms_tags %}
+{% load market_tags %}
 
 {% block title %}Market Data - {{ title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Column selector styles */
+    .column-selector-dropdown {
+        width: 350px;
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 15px;
+    }
+    
+    .column-category {
+        margin-bottom: 15px;
+    }
+    
+    .column-category h6 {
+        color: #2962ff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 4px;
+    }
+    
+    .column-checkbox {
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+    
+    .column-checkbox label {
+        margin-left: 6px;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .column-checkbox input[type="checkbox"] {
+        cursor: pointer;
+    }
+    
+    .column-selector-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 10px 0 0;
+        margin-top: 10px;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .badge-column-count {
+        background-color: #6c757d;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25em 0.6em;
+        margin-left: 8px;
+        border-radius: 20px;
+    }
+    
+    /* Loading indicator for column changes */
+    .column-loading {
+        position: fixed;
+        top: 60px;
+        right: 20px;
+        background: #2962ff;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        z-index: 9999;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .column-loading i {
+        margin-right: 8px;
+        animation: spin 1s infinite linear;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Save indicator */
+    .save-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        z-index: 9999;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .save-indicator i {
+        margin-right: 8px;
+    }
+    
+    /* Debug styles */
+    .debug-info {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+{% get_column_visibility_settings %}
+
+<div class="column-loading" id="columnLoading">
+    <i class="fas fa-spinner"></i> Updating columns...
+</div>
+
+<div class="save-indicator" id="saveIndicator">
+    <i class="fas fa-check-circle"></i> Column preferences saved
+</div>
+
+<!-- Debug info (hidden by default) -->
+<div class="debug-info" id="debugInfo">
+    <strong>Debug Info:</strong>
+    <div id="debugContent"></div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -12,10 +142,43 @@
                 <h5 class="mb-0">
                     <i class="fas fa-chart-bar"></i> {{ title }}
                 </h5>
-                <div>
+                <div class="d-flex gap-2">
+                    <!-- Column Selector Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="columnSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-columns me-1"></i> Columns
+                            <span class="badge-column-count" id="visibleColumnCount">0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="columnSelectorDropdown" style="min-width: 350px;">
+                            <div class="column-selector-dropdown">
+                                <div class="mb-2 d-flex justify-content-between">
+                                    <small class="text-muted">Select columns to display</small>
+                                    <div>
+                                        <button class="btn btn-sm btn-link p-0 me-2" onclick="selectAllColumns()">All</button>
+                                        <button class="btn btn-sm btn-link p-0" onclick="deselectAllColumns()">None</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="columnSelector"></div>
+                                
+                                <div class="column-selector-actions">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary btn-sm" onclick="applyColumnVisibility()">
+                                            <i class="fas fa-check me-1"></i> Apply
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="resetToDefaultColumns()">
+                                            <i class="fas fa-undo me-1"></i> Reset to Default
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
                         <i class="fas fa-filter"></i> Filters
                     </button>
+                    
                     <button class="btn btn-sm btn-light" onclick="exportToCSV()">
                         <i class="fas fa-download"></i> Export
                     </button>
@@ -102,10 +265,113 @@
             
             <!-- Table Section -->
             <div class="card-body">
-                <div class="table-responsive">
+                <div class="table-responsive" id="table-container">
                     {% render_table table %}
                 </div>
             </div>
+
+            <div style="background: #f0f0f0; padding: 20px; margin: 20px; border: 2px solid red;">
+                <h3>Raw Data Debug</h3>
+                <pre>
+                    {% with first_record=table.page.object_list.0 %}
+                    First Record:
+                    - Symbol: {{ first_record.symbol.ticker }}
+                    - Current Price: {{ first_record.current_price }}
+                    - Change 1D: {{ first_record.change_1d }}
+                    - Change 1W: {{ first_record.change_1w }}
+                    - Change 1M: {{ first_record.change_1m }}
+                    - Change 1Y: {{ first_record.change_1y }}
+                    {% endwith %}
+                </pre>
+            </div>
+
+            <!-- Debug Section - Only one instance -->
+            <div class="card-body">
+                <div class="debug-panel" style="background: #f0f0f0; padding: 15px; margin: 10px; border: 2px solid #2962ff; border-radius: 5px;">
+                    <h4 style="color: #2962ff; margin-top: 0;">🔍 Table Debug Info</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                        <div style="background: white; padding: 10px; border-radius: 4px;">
+                            <strong>Table exists:</strong> 
+                            <span style="color: {% if table %}green{% else %}red{% endif %};">
+                                {{ table|yesno:"✅ Yes,❌ No" }}
+                            </span>
+                        </div>
+                        
+                        <div style="background: white; padding: 10px; border-radius: 4px;">
+                            <strong>Table data:</strong>
+                            <span style="color: {% if table.data %}green{% else %}orange{% endif %};">
+                                {{ table.data|yesno:"✅ Has data,⚠️ No data" }}
+                            </span>
+                        </div>
+                        
+                        <div style="background: white; padding: 10px; border-radius: 4px;">
+                            <strong>Page records:</strong> 
+                            <span style="font-weight: bold;">{{ table.page.object_list|length }}</span>
+                        </div>
+                        
+                        <div style="background: white; padding: 10px; border-radius: 4px;">
+                            <strong>Total records:</strong> 
+                            <span style="font-weight: bold;">{{ table.page.paginator.count|default:"N/A" }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if table.page.object_list %}
+                        <div style="background: white; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px;">📋 First Record Sample:</h5>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <th style="text-align: left; padding: 5px; border-bottom: 1px solid #ddd;">Field</th>
+                                    <th style="text-align: left; padding: 5px; border-bottom: 1px solid #ddd;">Value</th>
+                                </tr>
+                                {% with record=table.page.object_list.0 %}
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">Symbol</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.symbol.ticker }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">Date</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.as_of_date }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">Price</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.current_price }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">1D %</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.change_1d }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">1W %</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.change_1w }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">1M %</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.change_1m }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">1Y %</td>
+                                        <td style="padding: 5px; border-bottom: 1px solid #eee;">{{ record.change_1y }}</td>
+                                    </tr>
+                                {% endwith %}
+                            </table>
+                        </div>
+                    {% else %}
+                        <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>⚠️ No records in page object_list!</strong>
+                            <p style="margin: 10px 0 0 0; font-size: 0.9rem;">
+                                This means the queryset is empty or the pagination is not working correctly.
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                        <h5 style="margin-top: 0; margin-bottom: 10px;">🔧 Request Parameters:</h5>
+                        <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 0; overflow-x: auto;">{{ request.GET|pprint }}</pre>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -113,9 +379,318 @@
 
 {% block extra_js %}
 <script>
+// Column visibility manager
+class ColumnVisibilityManager {
+    constructor() {
+        this.allColumns = {{ all_columns|safe }};
+        this.defaultColumns = {{ default_columns|safe }};
+        this.currentColumns = this.loadSavedColumns() || this.defaultColumns;
+        this.columnMapping = this.buildColumnMapping();
+        this.init();
+    }
+    
+    buildColumnMapping() {
+        // Build a mapping from header text to column ID
+        return {
+            'Symbol': 'ticker',
+            'Company Name': 'name',
+            'Market Cap (B)': 'market_cap',
+            'Sector': 'sector',
+            'Industry': 'industry',
+            'Price': 'current_price',
+            '1D %': 'change_1d',
+            '1W %': 'change_1w',
+            '2W %': 'change_2w',
+            '1M %': 'change_1m',
+            '3M %': 'change_3m',
+            '6M %': 'change_6m',
+            '1Y %': 'change_1y',
+            'Volume': 'volume',
+            'Avg Vol (20D)': 'avg_volume_20d',
+            'P/E': 'pe_ratio',
+            'Div Yield %': 'dividend_yield',
+            '52W High': 'week_52_high',
+            '52W Low': 'week_52_low',
+            'Rel Volume': 'relative_volume',
+            'ATR': 'atr',
+            'RSI': 'rsi'
+        };
+    }
+    
+    init() {
+        this.renderColumnSelector();
+        this.updateTableVisibility();
+        this.updateColumnCount();
+        this.setupEventListeners();
+        
+        // Debug: Log current state
+        console.log('Column Manager Initialized');
+        console.log('Current Columns:', this.currentColumns);
+        console.log('Default Columns:', this.defaultColumns);
+    }
+    
+    setupEventListeners() {
+        // Listen for table redraw events
+        document.addEventListener('tableUpdated', () => {
+            this.updateTableVisibility();
+        });
+    }
+    
+    loadSavedColumns() {
+        try {
+            const saved = localStorage.getItem('marketDashboardColumns');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            console.error('Error loading saved columns:', e);
+            return null;
+        }
+    }
+    
+    saveColumns() {
+        try {
+            localStorage.setItem('marketDashboardColumns', JSON.stringify(this.currentColumns));
+            this.showSaveIndicator();
+        } catch (e) {
+            console.error('Error saving columns:', e);
+        }
+    }
+    
+    showSaveIndicator() {
+        const indicator = document.getElementById('saveIndicator');
+        indicator.style.display = 'block';
+        setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 2000);
+    }
+    
+    showLoading() {
+        document.getElementById('columnLoading').style.display = 'block';
+    }
+    
+    hideLoading() {
+        document.getElementById('columnLoading').style.display = 'none';
+    }
+    
+    renderColumnSelector() {
+        const container = document.getElementById('columnSelector');
+        if (!container) return;
+        
+        // Group columns by category
+        const categories = {};
+        this.allColumns.forEach(col => {
+            if (!categories[col.category]) {
+                categories[col.category] = [];
+            }
+            categories[col.category].push(col);
+        });
+        
+        let html = '';
+        for (const [category, columns] of Object.entries(categories)) {
+            html += `
+                <div class="column-category">
+                    <h6>${category}</h6>
+                    ${columns.map(col => `
+                        <div class="column-checkbox">
+                            <label>
+                                <input type="checkbox" 
+                                       value="${col.id}" 
+                                       ${this.currentColumns.includes(col.id) ? 'checked' : ''}>
+                                ${col.name}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    applyColumnVisibility() {
+        this.showLoading();
+        
+        // Get selected columns
+        const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
+        this.currentColumns = Array.from(checkboxes).map(cb => cb.value);
+        
+        // Save to localStorage
+        this.saveColumns();
+        
+        // Update table
+        this.updateTableVisibility();
+        this.updateColumnCount();
+        
+        this.hideLoading();
+        
+        console.log('Applied columns:', this.currentColumns);
+    }
+    
+    updateTableVisibility() {
+        const table = document.getElementById('market-data-table');
+        if (!table) {
+            console.error('Table not found');
+            return;
+        }
+        
+        const headers = table.querySelectorAll('thead th');
+        const rows = table.querySelectorAll('tbody tr');
+        
+        console.log('Updating table visibility');
+        console.log('Headers found:', headers.length);
+        console.log('Rows found:', rows.length);
+        
+        // First, hide/show headers and build index mapping
+        const columnIndices = {};
+        
+        headers.forEach((header, index) => {
+            const headerText = header.textContent.trim();
+            const columnId = this.columnMapping[headerText];
+            
+            if (columnId) {
+                columnIndices[index] = columnId;
+                if (this.currentColumns.includes(columnId)) {
+                    header.style.display = '';
+                    console.log(`Showing header ${index}: ${headerText} -> ${columnId}`);
+                } else {
+                    header.style.display = 'none';
+                    console.log(`Hiding header ${index}: ${headerText} -> ${columnId}`);
+                }
+            } else {
+                console.log(`No mapping for header: "${headerText}" at index ${index}`);
+            }
+        });
+        
+        // Hide/show cells based on header visibility
+        rows.forEach((row, rowIndex) => {
+            const cells = row.querySelectorAll('td');
+            
+            cells.forEach((cell, cellIndex) => {
+                const columnId = columnIndices[cellIndex];
+                if (columnId) {
+                    if (this.currentColumns.includes(columnId)) {
+                        cell.style.display = '';
+                    } else {
+                        cell.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
+    
+    updateColumnCount() {
+        const countSpan = document.getElementById('visibleColumnCount');
+        if (countSpan) {
+            countSpan.textContent = this.currentColumns.length;
+        }
+    }
+    
+    selectAllColumns() {
+        document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+        });
+    }
+    
+    deselectAllColumns() {
+        document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+    }
+    
+    resetToDefaultColumns() {
+        this.currentColumns = [...this.defaultColumns];
+        this.renderColumnSelector();
+        this.applyColumnVisibility();
+    }
+}
+
+// Initialize column manager when document is ready
+let columnManager = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure table is fully rendered
+    setTimeout(() => {
+        columnManager = new ColumnVisibilityManager();
+    }, 100);
+});
+
+// Export functions for button clicks
+function selectAllColumns() {
+    if (columnManager) columnManager.selectAllColumns();
+}
+
+function deselectAllColumns() {
+    if (columnManager) columnManager.deselectAllColumns();
+}
+
+function applyColumnVisibility() {
+    if (columnManager) columnManager.applyColumnVisibility();
+}
+
+function resetToDefaultColumns() {
+    if (columnManager) columnManager.resetToDefaultColumns();
+}
+
 function exportToCSV() {
+    if (columnManager) {
+        // Store current columns in session for export
+        sessionStorage.setItem('exportColumns', JSON.stringify(columnManager.currentColumns));
+    }
     let params = new URLSearchParams(window.location.search).toString();
     window.location.href = '/markets/export/?' + params;
 }
+
+// Debug function to check table structure
+function debugTable() {
+    const table = document.getElementById('market-data-table');
+    if (!table) {
+        console.error('Table not found');
+        return;
+    }
+    
+    const headers = table.querySelectorAll('thead th');
+    const firstRow = table.querySelector('tbody tr');
+    
+    console.log('=== TABLE DEBUG ===');
+    console.log('Headers:');
+    headers.forEach((h, i) => {
+        console.log(`  ${i}: "${h.textContent.trim()}"`);
+    });
+    
+    if (firstRow) {
+        const cells = firstRow.querySelectorAll('td');
+        console.log('First row cells:');
+        cells.forEach((c, i) => {
+            console.log(`  ${i}: "${c.textContent.trim()}"`);
+        });
+    } else {
+        console.log('No rows found in tbody');
+    }
+    
+    console.log('Column Manager State:', columnManager ? columnManager.currentColumns : 'Not initialized');
+}
+
+// Check for empty table
+function checkForEmptyTable() {
+    const table = document.getElementById('market-data-table');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    if (tbody && tbody.children.length === 0) {
+        // Table is empty, show message
+        const container = document.getElementById('table-container');
+        if (container) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'alert alert-warning mt-3';
+            messageDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> No data found. Please check the diagnostic endpoint at <a href="/markets/diagnostic/" target="_blank">/markets/diagnostic/</a>';
+            container.prepend(messageDiv);
+        }
+    }
+}
+
+// Call debug functions after page load
+setTimeout(() => {
+    debugTable();
+    checkForEmptyTable();
+}, 500);
 </script>
 {% endblock %}

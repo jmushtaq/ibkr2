@@ -54,6 +54,7 @@ TEMPLATES = [
                                 'django.template.context_processors.request',
                                 'django.contrib.auth.context_processors.auth',
                                 'django.contrib.messages.context_processors.messages',
+                                'markets.context_processors.dashboard_settings',
 
             ],
 
@@ -129,3 +130,15 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 #DATA_DIR = BASE_DIR / 'data'
 DATA_DIR = '/home/ubuntu/projects/ibkr/data'
 
+MARKET_DASHBOARD_DEFAULT_COLUMNS = [
+    'ticker',
+    'name',
+    'market_cap',
+    'sector',
+    'industry',
+    'current_price',
+    'change_1d',
+    'change_1w',
+    'change_1m',
+    'change_1y',
+]

@@ -1,0 +1,47 @@
+{% extends 'markets/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Data Debug View</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>PrecomputedMetrics Records (Latest Date)</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>1D %</th>
+                        <th>1W %</th>
+                        <th>1M %</th>
+                        <th>1Y %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in metrics %}
+                    <tr>
+                        <td>{{ metric.symbol.ticker }}</td>
+                        <td>{{ metric.as_of_date }}</td>
+                        <td>${{ metric.current_price|default:'-' }}</td>
+                        <td class="{% if metric.change_1d and metric.change_1d > 0 %}text-success{% elif metric.change_1d and metric.change_1d < 0 %}text-danger{% endif %}">
+                            {{ metric.change_1d|default:'-' }}{% if metric.change_1d %}%{% endif %}
+                        </td>
+                        <td>{{ metric.change_1w|default:'-' }}{% if metric.change_1w %}%{% endif %}</td>
+                        <td>{{ metric.change_1m|default:'-' }}{% if metric.change_1m %}%{% endif %}</td>
+                        <td>{{ metric.change_1y|default:'-' }}{% if metric.change_1y %}%{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No metrics found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

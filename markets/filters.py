@@ -1,6 +1,33 @@
 import django_filters
 from django import forms
+from django.db.models import Q
 from .models import PrecomputedMetrics, Symbol, Sector, Industry
+
+
+class _SymbolMetricsFilter(django_filters.FilterSet):
+    # Keep only essential filters for now
+    search = django_filters.CharFilter(
+        method='filter_search',
+        label='Search',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Search...'})
+    )
+
+    class Meta:
+        model = PrecomputedMetrics
+        fields = ['search']
+
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(
+            Q(symbol__ticker__icontains=value) |
+            Q(symbol__name__icontains=value)
+        )
+
+    @property
+    def qs(self):
+        queryset = super().qs
+        print(f"Filterset returning {queryset.count()} records")
+        return queryset
+
 
 class SymbolMetricsFilter(django_filters.FilterSet):
     # Text search

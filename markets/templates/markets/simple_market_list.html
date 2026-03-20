@@ -1,0 +1,21 @@
+{% extends 'markets/base.html' %}
+{% load django_tables2 %}
+
+{% block title %}Simple Market Data{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Simple Market Data View</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% render_table table %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

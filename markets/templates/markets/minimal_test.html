@@ -1,0 +1,84 @@
+<!-- markets/templates/markets/minimal_test.html -->
+{% extends 'markets/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Minimal Data Test</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5>Database Stats</h5>
+        </div>
+        <div class="card-body">
+            <p>Total PrecomputedMetrics records: <strong>{{ total_count }}</strong></p>
+            <p>Latest date: <strong>{{ latest_date|default:"None" }}</strong></p>
+            <p>Records for latest date: <strong>{{ record_count }}</strong></p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5>Sample Records</h5>
+        </div>
+        <div class="card-body">
+            {% if records %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Date</th>
+                            <th>Price</th>
+                            <th>1D %</th>
+                            <th>1W %</th>
+                            <th>1M %</th>
+                            <th>1Y %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.symbol.ticker }}</td>
+                            <td>{{ record.as_of_date }}</td>
+                            <td>${{ record.current_price|floatformat:2 }}</td>
+                            <td>{{ record.change_1d|floatformat:2 }}%</td>
+                            <td>{{ record.change_1w|floatformat:2 }}%</td>
+                            <td>{{ record.change_1m|floatformat:2 }}%</td>
+                            <td>{{ record.change_1y|floatformat:2 }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-warning">No records found</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5>Debug Info</h5>
+        </div>
+        <div class="card-body">
+            <pre>
+Total records in DB: {{ total_count }}
+Latest date: {{ latest_date }}
+Records retrieved: {{ record_count }}
+
+First record details (if any):
+{% with first=records.0 %}
+{% if first %}
+- Symbol: {{ first.symbol.ticker }}
+- Current Price: {{ first.current_price }}
+- Change 1D: {{ first.change_1d }}
+- Change 1W: {{ first.change_1w }}
+- Change 1M: {{ first.change_1m }}
+- Change 1Y: {{ first.change_1y }}
+{% else %}
+No first record
+{% endif %}
+{% endwith %}
+            </pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
