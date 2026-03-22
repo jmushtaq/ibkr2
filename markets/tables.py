@@ -178,6 +178,35 @@ class SymbolMetricsTable(tables.Table):
         #visible=False,
     )
 
+    # Add technical indicator columns (examples)
+    rsi_14 = tables.Column(
+        accessor='technical_indicators.first.rsi_14',  # Access via the prefetched related manager
+        verbose_name='RSI 14',
+        orderable=False,
+        visible=False,
+    )
+
+    sma_50 = tables.Column(
+        accessor='technical_indicators.first.sma_50',
+        verbose_name='SMA 50',
+        orderable=False,
+        visible=False,
+    )
+
+    sma_200 = tables.Column(
+        accessor='technical_indicators.first.sma_200',
+        verbose_name='SMA 200',
+        orderable=False,
+        visible=False,
+    )
+
+    atr_14 = tables.Column(
+        accessor='technical_indicators.first.atr_14',
+        verbose_name='ATR 14',
+        orderable=False,
+        visible=False,
+    )
+
     def render_ticker(self, value, record):
         """Render ticker as a link to the chart page"""
         if value is None:
@@ -388,6 +417,45 @@ class SymbolMetricsTable(tables.Table):
         except:
             return str(value)
 
+    # Add render methods for these columns
+    def render_rsi_14(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            # Color code RSI based on overbought/oversold
+            if value > 70:
+                return format_html('<span class="text-danger">{:.1f}</span>', value)
+            elif value < 30:
+                return format_html('<span class="text-success">{:.1f}</span>', value)
+            return format_html('{:.1f}', value)
+        except:
+            return str(value)
+
+    def render_sma_50(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('${:.2f}', float(value))
+        except:
+            return str(value)
+
+    def render_sma_200(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('${:.2f}', float(value))
+        except:
+            return str(value)
+
+    def render_atr_14(self, value, record):
+        if value is None:
+            return '-'
+        try:
+            return format_html('${:.2f}', float(value))
+        except:
+            return str(value)
+
+
     class Meta:
         model = PrecomputedMetrics
         template_name = "django_tables2/bootstrap5.html"
@@ -406,5 +474,5 @@ class SymbolMetricsTable(tables.Table):
             'thead': {'class': 'table-dark'},
             'id': 'market-data-table',
         }
-        order_by = 'ticker'
+        order_by = 'symbol__ticker'
         per_page = 25

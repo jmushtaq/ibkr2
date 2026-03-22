@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib import admin
 from django.conf import settings
-from .models import Symbol, Sector, Industry, OHLCVData, PrecomputedMetrics
+from .models import Symbol, Sector, Industry, OHLCVData, PrecomputedMetrics, TechnicalIndicators
 
 class DashboardConfigAdmin(admin.ModelAdmin):
     """Admin interface for dashboard configuration"""
@@ -28,6 +28,15 @@ class DashboardConfig(models.Model):
     def __str__(self):
         return self.name
 
+
+@admin.register(TechnicalIndicators)
+class TechnicalIndicatorsAdmin(admin.ModelAdmin):
+    list_display = ['symbol', 'as_of_date', 'rsi_14', 'sma_50', 'sma_200']
+    list_filter = ['as_of_date']
+    search_fields = ['symbol__ticker', 'precomputed_metrics__symbol__ticker']
+    raw_id_fields = ['precomputed_metrics']
+
 # Then register it in admin.py
 admin.site.register(DashboardConfig, DashboardConfigAdmin)
+
 

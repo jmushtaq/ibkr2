@@ -4,31 +4,6 @@ from django.db.models import Q
 from .models import PrecomputedMetrics, Symbol, Sector, Industry
 
 
-class _SymbolMetricsFilter(django_filters.FilterSet):
-    # Keep only essential filters for now
-    search = django_filters.CharFilter(
-        method='filter_search',
-        label='Search',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Search...'})
-    )
-
-    class Meta:
-        model = PrecomputedMetrics
-        fields = ['search']
-
-    def filter_search(self, queryset, name, value):
-        return queryset.filter(
-            Q(symbol__ticker__icontains=value) |
-            Q(symbol__name__icontains=value)
-        )
-
-    @property
-    def qs(self):
-        queryset = super().qs
-        print(f"Filterset returning {queryset.count()} records")
-        return queryset
-
-
 class SymbolMetricsFilter(django_filters.FilterSet):
     # Text search
     search = django_filters.CharFilter(
@@ -363,4 +338,25 @@ class SymbolMetricsFilter(django_filters.FilterSet):
             Q(symbol__ticker__icontains=value) |
             Q(symbol__name__icontains=value)
         )
+
+
+class TechnicalIndicatorFilter(django_filters.FilterSet):
+    rsi_14_min = django_filters.NumberFilter(
+        field_name='technical_indicators__rsi_14',
+        lookup_expr='gte'
+    )
+    rsi_14_max = django_filters.NumberFilter(
+        field_name='technical_indicators__rsi_14',
+        lookup_expr='lte'
+    )
+    sma_50_above_200 = django_filters.BooleanFilter(
+        method='filter_sma_crossover'
+    )
+
+    def filter_sma_crossover(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                technical_indicators__sma_50__gt=models.F('technical_indicators__sma_200')
+            )
+        return queryset
 

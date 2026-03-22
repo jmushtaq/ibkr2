@@ -48,23 +48,19 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
                     frequency='1D'
                 ).order_by('-as_of_date').values_list('as_of_date', flat=True).first()
 
-            print(f"Using as_of_date: {as_of_date}")
-
             if not as_of_date:
-                print("No date found!")
                 return PrecomputedMetrics.objects.none()
 
-            # Get records for the selected date
+            # Get records for the selected date with related data
             queryset = PrecomputedMetrics.objects.filter(
                 frequency='1D',
                 as_of_date=as_of_date
             ).select_related(
                 'symbol__sector',
                 'symbol__industry'
+            ).prefetch_related(
+                'technical_indicators'  # Now this works because TechnicalIndicators has ForeignKey to PrecomputedMetrics
             ).order_by('symbol__ticker')
-
-            count = queryset.count()
-            print(f"Queryset count for {as_of_date}: {count}")
 
             return queryset
 
@@ -97,15 +93,14 @@ class SymbolMetricsListView(SingleTableMixin, FilterView):
                 context['selected_date'] = latest_date.strftime('%Y-%m-%d')
 
         # Add debug info
-        if hasattr(self, 'object_list'):
+        if hasattr(self, 'object_list') and self.object_list.exists():
             context['debug_record_count'] = self.object_list.count()
-            if self.object_list.exists():
-                first = self.object_list.first()
-                context['debug_first'] = {
-                    'ticker': first.symbol.ticker,
-                    'price': first.current_price,
-                    'change_1d': first.change_1d,
-                }
+            first = self.object_list.first()
+            context['debug_first'] = {
+                'ticker': first.symbol.ticker,
+                'price': first.current_price,
+                'change_1d': first.change_1d,
+            }
 
         return context
 

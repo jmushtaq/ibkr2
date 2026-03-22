@@ -170,3 +170,90 @@ class PrecomputedMetrics(models.Model):
     def __str__(self):
         return f"{self.symbol.ticker} - {self.as_of_date}"
 
+
+class TechnicalIndicators(models.Model):
+    """Extended technical indicators - separate table for better organization"""
+
+    precomputed_metrics = models.ForeignKey(
+        PrecomputedMetrics,
+        on_delete=models.CASCADE,
+        related_name='technical_indicators'
+    )
+
+    symbol = models.ForeignKey(Symbol, on_delete=models.CASCADE, related_name='technical_indicators')
+    frequency = models.CharField(max_length=10, choices=OHLCVData.FREQUENCY_CHOICES)
+    as_of_date = models.DateField(db_index=True)
+
+    # Moving Averages
+    sma_9 = models.FloatField(null=True, blank=True)
+    sma_20 = models.FloatField(null=True, blank=True)
+    sma_30 = models.FloatField(null=True, blank=True)
+    sma_50 = models.FloatField(null=True, blank=True)
+    sma_100 = models.FloatField(null=True, blank=True)
+    sma_200 = models.FloatField(null=True, blank=True)
+
+    ema_9 = models.FloatField(null=True, blank=True)
+    ema_20 = models.FloatField(null=True, blank=True)
+    ema_30 = models.FloatField(null=True, blank=True)
+    ema_50 = models.FloatField(null=True, blank=True)
+    ema_100 = models.FloatField(null=True, blank=True)
+    ema_200 = models.FloatField(null=True, blank=True)
+
+    # Oscillators
+    rsi_14 = models.FloatField(null=True, blank=True)
+    stoch_k_fast = models.FloatField(null=True, blank=True)
+    stoch_d_fast = models.FloatField(null=True, blank=True)
+    stoch_k_slow = models.FloatField(null=True, blank=True)
+    stoch_d_slow = models.FloatField(null=True, blank=True)
+
+    # Volatility
+    atr_14 = models.FloatField(null=True, blank=True)
+    beta_252 = models.FloatField(null=True, blank=True, help_text="Beta vs S&P 500 (252 days)")
+
+    # High/Low
+    high_1w = models.FloatField(null=True, blank=True)
+    low_1w = models.FloatField(null=True, blank=True)
+    high_1m = models.FloatField(null=True, blank=True)
+    low_1m = models.FloatField(null=True, blank=True)
+    high_3m = models.FloatField(null=True, blank=True)
+    low_3m = models.FloatField(null=True, blank=True)
+    high_1y = models.FloatField(null=True, blank=True)
+    low_1y = models.FloatField(null=True, blank=True)
+
+    # Performance metrics (like Finviz)
+    perf_week = models.FloatField(null=True, blank=True)
+    perf_month = models.FloatField(null=True, blank=True)
+    perf_quarter = models.FloatField(null=True, blank=True)
+    perf_half_y = models.FloatField(null=True, blank=True)
+    perf_ytd = models.FloatField(null=True, blank=True)
+    perf_year = models.FloatField(null=True, blank=True)
+
+    # Volume metrics
+    avg_volume_20d = models.FloatField(null=True, blank=True)
+    avg_volume_50d = models.FloatField(null=True, blank=True)
+    relative_volume = models.FloatField(null=True, blank=True)
+    volume = models.FloatField(null=True, blank=True)
+
+    # Additional
+    change_open = models.FloatField(null=True, blank=True, help_text="% change from open")
+    gap = models.FloatField(null=True, blank=True, help_text="% gap from previous close")
+    range_52w = models.FloatField(null=True, blank=True, help_text="% of 52-week range")
+
+    # VWAP and POC (Point of Control) - weekly/monthly
+    vwap_week = models.FloatField(null=True, blank=True)
+    poc_week = models.FloatField(null=True, blank=True)
+    vwap_month = models.FloatField(null=True, blank=True)
+    poc_month = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-as_of_date', 'symbol']
+        unique_together = ['symbol', 'frequency', 'as_of_date']
+        indexes = [
+            models.Index(fields=['symbol', 'frequency', '-as_of_date']),
+            # Add indexes for frequently filtered fields
+            models.Index(fields=['rsi_14']),
+            models.Index(fields=['sma_50', 'sma_200']),
+            models.Index(fields=['relative_volume']),
+        ]
+
+
