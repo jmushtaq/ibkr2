@@ -1,0 +1,71 @@
+{
+  "model_id": 15,
+  "model_name": "sp500_model_rr2_RR2.0_20260329_025108",
+  "train_end_date": "2019-12-31T00:00:00+00:00",
+  "test_years": 7,
+  "rr_ratio": 2.0,
+  "test_samples": 23641,
+  "best_threshold": 0.6,
+  "best_precision": 0.0,
+  "best_recall": 0.0,
+  "expected_value": -1.0,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.46285714285714286,
+      "recall": 0.009418604651162791,
+      "signals": 175,
+      "expected_value": 0.38857142857142857
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.5263157894736842,
+      "recall": 0.0011627906976744186,
+      "signals": 19,
+      "expected_value": 0.5789473684210525
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.0,
+      "recall": 0.0,
+      "signals": 2,
+      "expected_value": -1.0
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.37773417210134475,
+    "precision": 1.0,
+    "recall": 0.37773417210134475,
+    "f1_score": 0.5483411528150134,
+    "roc_auc": 0.5,
+    "true_positives": 6545,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 10782
+  },
+  "feature_importance": {
+    "trend_strength": 0.03965367376804352,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.03840561583638191,
+    "price_to_ema_slow": 0.03737558797001839,
+    "stoch_k": 0.03805968537926674,
+    "stoch_d": 0.03858628869056702,
+    "stoch_oversold": 0.15859434008598328,
+    "stoch_overbought": 0.04592430591583252,
+    "stoch_cross_above": 0.03838120773434639,
+    "stoch_cross_below": 0.037435270845890045,
+    "vwap_deviation": 0.04067757725715637,
+    "vwap_deviation_normalized": 0.03740793466567993,
+    "below_vwap": 0.03867952525615692,
+    "above_vwap": 0.041088081896305084,
+    "regression_slope": 0.036169424653053284,
+    "regression_signal": 0.044826239347457886,
+    "regression_cross_up": 0.038234781473875046,
+    "regression_cross_down": 0.03666282072663307,
+    "volume_ratio": 0.04233928024768829,
+    "atr_pct": 0.04451803117990494,
+    "range_pct": 0.043727390468120575,
+    "return_1d": 0.038559310138225555,
+    "return_5d": 0.04469360038638115
+  }
+}

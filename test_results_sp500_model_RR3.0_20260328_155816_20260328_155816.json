@@ -1,0 +1,85 @@
+{
+  "model_id": 12,
+  "model_name": "sp500_model_RR3.0_20260328_155816",
+  "train_end_date": "2019-12-31T00:00:00+00:00",
+  "test_years": 7,
+  "rr_ratio": 3.0,
+  "test_samples": 1610,
+  "best_threshold": 0.7,
+  "best_precision": 0.3333333333333333,
+  "best_recall": 0.002551020408163265,
+  "expected_value": 0.33333333333333326,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.2318840579710145,
+      "recall": 0.12244897959183673,
+      "signals": 207,
+      "expected_value": -0.07246376811594202
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.2641509433962264,
+      "recall": 0.07142857142857142,
+      "signals": 106,
+      "expected_value": 0.05660377358490565
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.1951219512195122,
+      "recall": 0.02040816326530612,
+      "signals": 41,
+      "expected_value": -0.2195121951219512
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.2631578947368421,
+      "recall": 0.012755102040816327,
+      "signals": 19,
+      "expected_value": 0.05263157894736836
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.3333333333333333,
+      "recall": 0.002551020408163265,
+      "signals": 3,
+      "expected_value": 0.33333333333333326
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.802784222737819,
+    "precision": 1.0,
+    "recall": 0.802784222737819,
+    "f1_score": 0.8906048906048906,
+    "roc_auc": 0.5,
+    "true_positives": 1038,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 255
+  },
+  "feature_importance": {
+    "trend_strength": 0.031139547005295753,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.03450514003634453,
+    "price_to_ema_slow": 0.033228207379579544,
+    "stoch_k": 0.03175825625658035,
+    "stoch_d": 0.033265843987464905,
+    "stoch_oversold": 0.22243259847164154,
+    "stoch_overbought": 0.043424081057310104,
+    "stoch_cross_above": 0.03449177369475365,
+    "stoch_cross_below": 0.05897747725248337,
+    "vwap_deviation": 0.03592707961797714,
+    "vwap_deviation_normalized": 0.036467213183641434,
+    "below_vwap": 0.03652840107679367,
+    "above_vwap": 0.051104556769132614,
+    "regression_slope": 0.03184041753411293,
+    "regression_signal": 0.03588296100497246,
+    "regression_cross_up": 0.03691115230321884,
+    "regression_cross_down": 0.0487094484269619,
+    "volume_ratio": 0.03709041327238083,
+    "atr_pct": 0.030268430709838867,
+    "range_pct": 0.03302985429763794,
+    "return_1d": 0.03059057891368866,
+    "return_5d": 0.03242667019367218
+  }
+}

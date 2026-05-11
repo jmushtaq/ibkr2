@@ -1,0 +1,64 @@
+{
+  "model_id": 13,
+  "model_name": "sp500_model_RR3.0_20260328_161125",
+  "train_end_date": "2019-12-31T00:00:00+00:00",
+  "test_years": 7,
+  "rr_ratio": 3.0,
+  "test_samples": 22940,
+  "best_threshold": 0.5,
+  "best_precision": 0.3953488372093023,
+  "best_recall": 0.002688597184880595,
+  "expected_value": 0.5813953488372092,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.3953488372093023,
+      "recall": 0.002688597184880595,
+      "signals": 43,
+      "expected_value": 0.5813953488372092
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.09090909090909091,
+      "recall": 0.00015815277558121145,
+      "signals": 11,
+      "expected_value": -0.6363636363636364
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.4718632983492432,
+    "precision": 1.0,
+    "recall": 0.4718632983492432,
+    "f1_score": 0.6411781568009173,
+    "roc_auc": 0.5,
+    "true_positives": 8947,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 10014
+  },
+  "feature_importance": {
+    "trend_strength": 0.018921151757240295,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.021337885409593582,
+    "price_to_ema_slow": 0.02043929509818554,
+    "stoch_k": 0.021414868533611298,
+    "stoch_d": 0.021585138514637947,
+    "stoch_oversold": 0.46879807114601135,
+    "stoch_overbought": 0.02700495906174183,
+    "stoch_cross_above": 0.021177181974053383,
+    "stoch_cross_below": 0.061195459216833115,
+    "vwap_deviation": 0.024809861555695534,
+    "vwap_deviation_normalized": 0.02247261255979538,
+    "below_vwap": 0.0257006473839283,
+    "above_vwap": 0.028619475662708282,
+    "regression_slope": 0.02005012333393097,
+    "regression_signal": 0.02225652150809765,
+    "regression_cross_up": 0.02367054671049118,
+    "regression_cross_down": 0.04094240814447403,
+    "volume_ratio": 0.02332746423780918,
+    "atr_pct": 0.020229844376444817,
+    "range_pct": 0.019524594768881798,
+    "return_1d": 0.02248794212937355,
+    "return_5d": 0.0240339245647192
+  }
+}

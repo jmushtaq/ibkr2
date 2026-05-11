@@ -1,0 +1,113 @@
+{
+  "model_id": 17,
+  "model_name": "sp500_model_rr2_15min_RR2.0_20260329_160536",
+  "train_end_date": "2017-12-31T00:00:00+00:00",
+  "test_years": 5,
+  "rr_ratio": 2.0,
+  "test_samples": 65730,
+  "best_threshold": 0.9,
+  "best_precision": 0.0,
+  "best_recall": 0.0,
+  "expected_value": -1.0,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.2123926493674393,
+      "recall": 0.24320609072644603,
+      "signals": 10829,
+      "expected_value": -0.36282205189768213
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.2244375589384346,
+      "recall": 0.17616580310880828,
+      "signals": 7423,
+      "expected_value": -0.3266873231846962
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.2379625945085555,
+      "recall": 0.12646716717775194,
+      "signals": 5026,
+      "expected_value": -0.2861122164743335
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.24945770065075923,
+      "recall": 0.0851221317542561,
+      "signals": 3227,
+      "expected_value": -0.2516268980477223
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.262015503875969,
+      "recall": 0.05361108173839484,
+      "signals": 1935,
+      "expected_value": -0.21395348837209294
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.2836946277097078,
+      "recall": 0.03182827535159141,
+      "signals": 1061,
+      "expected_value": -0.14891611687087647
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.29398663697104677,
+      "recall": 0.013957914772126467,
+      "signals": 449,
+      "expected_value": -0.1180400890868597
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.3389830508474576,
+      "recall": 0.004229671143068626,
+      "signals": 118,
+      "expected_value": 0.016949152542372836
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.0,
+      "recall": 0.0,
+      "signals": 2,
+      "expected_value": -1.0
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.6776084796290163,
+    "precision": 1.0,
+    "recall": 0.6776084796290163,
+    "f1_score": 0.8078267222145438,
+    "roc_auc": 0.5,
+    "true_positives": 20457,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 9733
+  },
+  "feature_importance": {
+    "trend_strength": 0.019982801750302315,
+    "is_uptrend": 0.01391506940126419,
+    "price_to_ema_fast": 0.012272884137928486,
+    "price_to_ema_slow": 0.018706735223531723,
+    "stoch_k": 0.025175435468554497,
+    "stoch_d": 0.02204386331140995,
+    "stoch_oversold": 0.1658368855714798,
+    "stoch_overbought": 0.04690004140138626,
+    "stoch_cross_above": 0.044532258063554764,
+    "stoch_cross_below": 0.05549507960677147,
+    "vwap_deviation": 0.10880493372678757,
+    "vwap_deviation_normalized": 0.043432239443063736,
+    "below_vwap": 0.03165029361844063,
+    "above_vwap": 0.04316191002726555,
+    "regression_slope": 0.015288476832211018,
+    "regression_signal": 0.03651811182498932,
+    "regression_cross_up": 0.04788030683994293,
+    "regression_cross_down": 0.0673917680978775,
+    "volume_ratio": 0.020438620820641518,
+    "atr_pct": 0.1028769463300705,
+    "range_pct": 0.018806912004947662,
+    "return_1d": 0.01860400103032589,
+    "return_5d": 0.020284416154026985
+  }
+}

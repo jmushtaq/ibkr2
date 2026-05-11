@@ -521,6 +521,7 @@ class Command(BaseCommand):
                     if not df.empty:
                         dfs.append(df)
 
+            import ipdb;ipdb.set_trace()
             if dfs:
                 benchmark = pd.concat(dfs).sort_index()
                 self.stdout.write(f"  Loaded benchmark data: {len(benchmark)} days, {benchmark.index[0].date()} to {benchmark.index[-1].date()}")

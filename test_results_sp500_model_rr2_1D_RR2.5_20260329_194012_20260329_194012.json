@@ -1,0 +1,64 @@
+{
+  "model_id": 19,
+  "model_name": "sp500_model_rr2_1D_RR2.5_20260329_194012",
+  "train_end_date": "2017-12-31T00:00:00+00:00",
+  "test_years": 5,
+  "rr_ratio": 2.5,
+  "test_samples": 13301,
+  "best_threshold": 0.55,
+  "best_precision": 1.0,
+  "best_recall": 0.0004775549188156638,
+  "expected_value": 2.5,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.68,
+      "recall": 0.004059216809933142,
+      "signals": 25,
+      "expected_value": 1.3800000000000003
+    },
+    {
+      "threshold": 0.55,
+      "precision": 1.0,
+      "recall": 0.0004775549188156638,
+      "signals": 2,
+      "expected_value": 2.5
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.4715690978886756,
+    "precision": 1.0,
+    "recall": 0.4715690978886756,
+    "f1_score": 0.6409064971060568,
+    "roc_auc": 0.5,
+    "true_positives": 7862,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 8810
+  },
+  "feature_importance": {
+    "trend_strength": 0.024236954748630524,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.023230815306305885,
+    "price_to_ema_slow": 0.023963186889886856,
+    "stoch_k": 0.023122185841202736,
+    "stoch_d": 0.0234909038990736,
+    "stoch_oversold": 0.4110715985298157,
+    "stoch_overbought": 0.03469737991690636,
+    "stoch_cross_above": 0.023777766153216362,
+    "stoch_cross_below": 0.05819026380777359,
+    "vwap_deviation": 0.027992086485028267,
+    "vwap_deviation_normalized": 0.024985237047076225,
+    "below_vwap": 0.030242089182138443,
+    "above_vwap": 0.029657013714313507,
+    "regression_slope": 0.023974349722266197,
+    "regression_signal": 0.026269439607858658,
+    "regression_cross_up": 0.02365420013666153,
+    "regression_cross_down": 0.03696164861321449,
+    "volume_ratio": 0.026519734412431717,
+    "atr_pct": 0.026585953310132027,
+    "range_pct": 0.023667091503739357,
+    "return_1d": 0.026157541200518608,
+    "return_5d": 0.02755243331193924
+  }
+}

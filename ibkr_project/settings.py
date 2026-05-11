@@ -27,6 +27,8 @@ INSTALLED_APPS = [
 
         # Local apps
         'markets',
+        'ml_framework',
+        'ml_trend',
 
 ]
 

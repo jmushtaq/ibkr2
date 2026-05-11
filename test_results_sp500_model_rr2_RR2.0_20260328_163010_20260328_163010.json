@@ -1,0 +1,71 @@
+{
+  "model_id": 14,
+  "model_name": "sp500_model_rr2_RR2.0_20260328_163010",
+  "train_end_date": "2019-12-31T00:00:00+00:00",
+  "test_years": 7,
+  "rr_ratio": 2.0,
+  "test_samples": 23641,
+  "best_threshold": 0.6,
+  "best_precision": 0.7,
+  "best_recall": 0.0008139534883720931,
+  "expected_value": 1.0999999999999999,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.48066298342541436,
+      "recall": 0.020232558139534885,
+      "signals": 362,
+      "expected_value": 0.4419889502762431
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.5569620253164557,
+      "recall": 0.0051162790697674414,
+      "signals": 79,
+      "expected_value": 0.670886075949367
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.7,
+      "recall": 0.0008139534883720931,
+      "signals": 10,
+      "expected_value": 1.0999999999999999
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.38389254006687423,
+    "precision": 1.0,
+    "recall": 0.38389254006687423,
+    "f1_score": 0.5548010831076859,
+    "roc_auc": 0.5,
+    "true_positives": 6659,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 10687
+  },
+  "feature_importance": {
+    "trend_strength": 0.037150781601667404,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.037880584597587585,
+    "price_to_ema_slow": 0.03718426078557968,
+    "stoch_k": 0.037317462265491486,
+    "stoch_d": 0.03592491149902344,
+    "stoch_oversold": 0.16949649155139923,
+    "stoch_overbought": 0.04785367473959923,
+    "stoch_cross_above": 0.03958567604422569,
+    "stoch_cross_below": 0.04046545550227165,
+    "vwap_deviation": 0.03926118090748787,
+    "vwap_deviation_normalized": 0.037828098982572556,
+    "below_vwap": 0.03701411187648773,
+    "above_vwap": 0.040304996073246,
+    "regression_slope": 0.03810686990618706,
+    "regression_signal": 0.04028807580471039,
+    "regression_cross_up": 0.03947474807500839,
+    "regression_cross_down": 0.035565514117479324,
+    "volume_ratio": 0.03904116153717041,
+    "atr_pct": 0.044482313096523285,
+    "range_pct": 0.039285559207201004,
+    "return_1d": 0.040689773857593536,
+    "return_5d": 0.04579835385084152
+  }
+}

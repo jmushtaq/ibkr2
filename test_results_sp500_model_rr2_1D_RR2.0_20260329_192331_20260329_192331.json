@@ -1,0 +1,71 @@
+{
+  "model_id": 18,
+  "model_name": "sp500_model_rr2_1D_RR2.0_20260329_192331",
+  "train_end_date": "2017-12-31T00:00:00+00:00",
+  "test_years": 5,
+  "rr_ratio": 2.0,
+  "test_samples": 13490,
+  "best_threshold": 0.6,
+  "best_precision": 0.625,
+  "best_recall": 0.0010154346060113728,
+  "expected_value": 0.875,
+  "threshold_analysis": [
+    {
+      "threshold": 0.5,
+      "precision": 0.4072398190045249,
+      "recall": 0.018277822908204712,
+      "signals": 221,
+      "expected_value": 0.22171945701357465
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.4634146341463415,
+      "recall": 0.003858651502843217,
+      "signals": 41,
+      "expected_value": 0.3902439024390244
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.625,
+      "recall": 0.0010154346060113728,
+      "signals": 8,
+      "expected_value": 0.875
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.40231851007221586,
+    "precision": 1.0,
+    "recall": 0.40231851007221586,
+    "f1_score": 0.573790486515788,
+    "roc_auc": 0.5,
+    "true_positives": 6351,
+    "false_positives": 0,
+    "true_negatives": 0,
+    "false_negatives": 9435
+  },
+  "feature_importance": {
+    "trend_strength": 0.03769266605377197,
+    "is_uptrend": 0.0,
+    "price_to_ema_fast": 0.0401366762816906,
+    "price_to_ema_slow": 0.03709852695465088,
+    "stoch_k": 0.037148576229810715,
+    "stoch_d": 0.035548724234104156,
+    "stoch_oversold": 0.12247096747159958,
+    "stoch_overbought": 0.04525728523731232,
+    "stoch_cross_above": 0.03521358221769333,
+    "stoch_cross_below": 0.050511159002780914,
+    "vwap_deviation": 0.04241153225302696,
+    "vwap_deviation_normalized": 0.04148098826408386,
+    "below_vwap": 0.050327006727457047,
+    "above_vwap": 0.05818816274404526,
+    "regression_slope": 0.03655711188912392,
+    "regression_signal": 0.04287303611636162,
+    "regression_cross_up": 0.03721190243959427,
+    "regression_cross_down": 0.03939371556043625,
+    "volume_ratio": 0.04093622788786888,
+    "atr_pct": 0.04661412909626961,
+    "range_pct": 0.03949960693717003,
+    "return_1d": 0.03954290971159935,
+    "return_5d": 0.04388560354709625
+  }
+}

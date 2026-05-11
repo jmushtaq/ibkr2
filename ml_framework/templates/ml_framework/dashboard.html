@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        
+        .signal-buy {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .signal-sell {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .signal-neutral {
+            color: #6b7280;
+        }
+        
+        .signal-strength-strong {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        
+        .signal-strength-moderate {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        
+        .signal-strength-weak {
+            background: #6b7280;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .metric {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .metric-positive {
+            color: #10b981;
+        }
+        
+        .metric-negative {
+            color: #ef4444;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-warning {
+            background: #fed7aa;
+            color: #92400e;
+        }
+        
+        .badge-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 16px;
+            }
+            th, td {
+                padding: 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 ML Trading Dashboard</h1>
+        
+        <div class="grid">
+            <!-- Current Signal Card -->
+            <div class="card">
+                <h2>📈 Current Signal</h2>
+                <div id="current-signal" class="loading">Loading...</div>
+            </div>
+            
+            <!-- Top Models Card -->
+            <div class="card">
+                <h2>🏆 Top Performing Models</h2>
+                <div id="top-models" class="loading">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- Recent Predictions Card -->
+            <div class="card">
+                <h2>📊 Recent Predictions</h2>
+                <div id="recent-predictions" class="loading">Loading...</div>
+            </div>
+            
+            <!-- Model Performance Card -->
+            <div class="card">
+                <h2>📈 Model Performance</h2>
+                <div id="model-performance" class="loading">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📜 Prediction History (Last 10)</h2>
+            <div id="history" class="loading">Loading...</div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '/ml/api/';
+        
+        async function fetchAPI(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`API Error (${endpoint}):`, error);
+                return null;
+            }
+        }
+        
+        async function loadCurrentSignal() {
+            const models = await fetchAPI('models/');
+            if (!models || !models.models || models.models.length === 0) {
+                document.getElementById('current-signal').innerHTML = '<div class="loading">No models available</div>';
+                return;
+            }
+            
+            // Get best model
+            const bestModel = models.models[0];
+            
+            // Try to get latest prediction for that model's symbol
+            if (bestModel.symbol) {
+                const predictions = await fetchAPI(`predictions/${bestModel.symbol}/`);
+                if (predictions && predictions.predictions && predictions.predictions.length > 0) {
+                    const latest = predictions.predictions[0];
+                    const signalClass = latest.prediction === 'BUY' ? 'signal-buy' : 'signal-sell';
+                    const strengthClass = latest.confidence >= 0.8 ? 'signal-strength-strong' : 
+                                         latest.confidence >= 0.6 ? 'signal-strength-moderate' : 'signal-strength-weak';
+                    
+                    document.getElementById('current-signal').innerHTML = `
+                        <div style="text-align: center;">
+                            <div class="metric ${signalClass}" style="font-size: 48px;">${latest.prediction}</div>
+                            <div style="margin: 15px 0;">
+                                <span class="${strengthClass}">${latest.confidence >= 0.8 ? 'STRONG' : latest.confidence >= 0.6 ? 'MODERATE' : 'WEAK'}</span>
+                            </div>
+                            <div>Symbol: <strong>${bestModel.symbol}</strong></div>
+                            <div>Confidence: <strong>${(latest.confidence * 100).toFixed(1)}%</strong></div>
+                            <div>Price: <strong>$${latest.price || 'N/A'}</strong></div>
+                            <div>Time: ${new Date(latest.timestamp).toLocaleString()}</div>
+                            <div>Model: ${latest.model}</div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('current-signal').innerHTML = `
+                        <div class="loading">No recent predictions for ${bestModel.symbol}</div>
+                        <div style="margin-top: 15px;">
+                            <button class="refresh-btn" onclick="generatePrediction('${bestModel.symbol}', ${bestModel.id})">Generate Prediction</button>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        async function generatePrediction(symbol, modelId) {
+            try {
+                const response = await fetch('/ml/api/predict/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: symbol, model_id: modelId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Prediction: ${data.prediction} (Confidence: ${(data.confidence * 100).toFixed(1)}%)`);
+                    loadCurrentSignal();
+                    loadRecentPredictions(symbol);
+                    loadHistory();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error generating prediction: ${error.message}`);
+            }
+        }
+        
+        async function loadTopModels() {
+            const data = await fetchAPI('models/');
+            if (!data || !data.models) {
+                document.getElementById('top-models').innerHTML = '<div class="loading">No models available</div>';
+                return;
+            }
+            
+            const topModels = data.models.slice(0, 5);
+            
+            let html = '<table><thead><tr><th>Model</th><th>Accuracy</th><th>Sharpe</th><th>Symbol</th></tr></thead><tbody>';
+            for (const model of topModels) {
+                const accuracyClass = model.accuracy && model.accuracy > 0.55 ? 'badge-success' : 
+                                     model.accuracy && model.accuracy > 0.5 ? 'badge-warning' : 'badge-error';
+                html += `
+                    <tr>
+                        <td>${model.name}</td>
+                        <td><span class="badge ${accuracyClass}">${model.accuracy ? (model.accuracy * 100).toFixed(1) + '%' : 'N/A'}</span></td>
+                        <td class="${model.sharpe_ratio && model.sharpe_ratio > 0 ? 'metric-positive' : 'metric-negative'}">${model.sharpe_ratio ? model.sharpe_ratio.toFixed(2) : 'N/A'}</td>
+                        <td>${model.symbol || 'N/A'}</td>
+                    </tr>
+                `;
+            }
+            html += '</tbody></table>';
+            document.getElementById('top-models').innerHTML = html;
+        }
+        
+        async function loadRecentPredictions(symbol = null) {
+            const data = await fetchAPI('models/');
+            if (!data || !data.models) return;
+            
+            const bestModel = data.models[0];
+            if (!bestModel || !bestModel.symbol) return;
+            
+            const predictions = await fetchAPI(`predictions/${bestModel.symbol}/`);
+            if (!predictions || !predictions.predictions || predictions.predictions.length === 0) {
+                document.getElementById('recent-predictions').innerHTML = '<div class="loading">No recent predictions</div>';
+                return;
+            }
+            
+            const recent = predictions.predictions.slice(0, 5);
+            let html = '<table><thead><tr><th>Date</th><th>Signal</th><th>Confidence</th><th>Outcome</th></tr></thead><tbody>';
+            for (const pred of recent) {
+                const outcomeClass = pred.was_correct === true ? 'badge-success' : 
+                                    pred.was_correct === false ? 'badge-error' : 'badge-warning';
+                html += `
+                    <tr>
+                        <td>${new Date(pred.timestamp).toLocaleDateString()}</td>
+                        <td class="${pred.prediction === 'BUY' ? 'signal-buy' : 'signal-sell'}">${pred.prediction}</td>
+                        <td>${(pred.confidence * 100).toFixed(1)}%</td>
+                        <td><span class="badge ${outcomeClass}">${pred.was_correct === true ? '✓ Correct' : pred.was_correct === false ? '✗ Wrong' : 'Pending'}</span></td>
+                    </tr>
+                `;
+            }
+            html += '</tbody></table>';
+            document.getElementById('recent-predictions').innerHTML = html;
+        }
+        
+        async function loadModelPerformance() {
+            const data = await fetchAPI('models/');
+            if (!data || !data.models || data.models.length === 0) {
+                document.getElementById('model-performance').innerHTML = '<div class="loading">No models available</div>';
+                return;
+            }
+            
+            const bestModel = data.models[0];
+            const modelDetails = await fetchAPI(`models/${bestModel.id}/`);
+            
+            if (!modelDetails) {
+                document.getElementById('model-performance').innerHTML = '<div class="loading">Unable to load model details</div>';
+                return;
+            }
+            
+            let html = '<div style="margin-bottom: 15px;"><strong>Best Model:</strong> ' + bestModel.name + '</div>';
+            html += '<div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: 10px;">';
+            
+            if (modelDetails.metrics) {
+                const metrics = modelDetails.metrics;
+                html += `
+                    <div>
+                        <div style="color: #6b7280; font-size: 12px;">Accuracy</div>
+                        <div class="metric metric-positive">${(metrics.accuracy * 100).toFixed(1)}%</div>
+                    </div>
+                    <div>
+                        <div style="color: #6b7280; font-size: 12px;">Precision</div>
+                        <div class="metric">${(metrics.precision * 100).toFixed(1)}%</div>
+                    </div>
+                    <div>
+                        <div style="color: #6b7280; font-size: 12px;">Recall</div>
+                        <div class="metric">${(metrics.recall * 100).toFixed(1)}%</div>
+                    </div>
+                    <div>
+                        <div style="color: #6b7280; font-size: 12px;">F1 Score</div>
+                        <div class="metric">${(metrics.f1_score * 100).toFixed(1)}%</div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            document.getElementById('model-performance').innerHTML = html;
+        }
+        
+        async function loadHistory() {
+            const data = await fetchAPI('models/');
+            if (!data || !data.models || data.models.length === 0) return;
+            
+            const bestModel = data.models[0];
+            if (!bestModel.symbol) return;
+            
+            const predictions = await fetchAPI(`predictions/${bestModel.symbol}/`);
+            if (!predictions || !predictions.predictions || predictions.predictions.length === 0) {
+                document.getElementById('history').innerHTML = '<div class="loading">No prediction history</div>';
+                return;
+            }
+            
+            let html = '<table><thead><tr><th>Date</th><th>Signal</th><th>Confidence</th><th>Model</th><th>Outcome</th></tr></thead><tbody>';
+            for (const pred of predictions.predictions.slice(0, 10)) {
+                const outcomeClass = pred.was_correct === true ? 'badge-success' : 
+                                    pred.was_correct === false ? 'badge-error' : 'badge-warning';
+                html += `
+                    <tr>
+                        <td>${new Date(pred.timestamp).toLocaleString()}</td>
+                        <td class="${pred.prediction === 'BUY' ? 'signal-buy' : 'signal-sell'}">${pred.prediction}</td>
+                        <td>${(pred.confidence * 100).toFixed(1)}%</td>
+                        <td>${pred.model}</td>
+                        <td><span class="badge ${outcomeClass}">${pred.was_correct === true ? '✓' : pred.was_correct === false ? '✗' : '⏳'}</span></td>
+                    </tr>
+                `;
+            }
+            html += '</tbody></table>';
+            document.getElementById('history').innerHTML = html;
+        }
+        
+        // Auto-refresh every 30 seconds
+        function refreshAll() {
+            loadCurrentSignal();
+            loadTopModels();
+            loadRecentPredictions();
+            loadModelPerformance();
+            loadHistory();
+        }
+        
+        refreshAll();
+        setInterval(refreshAll, 30000);
+    </script>
+</body>
+</html>
+
